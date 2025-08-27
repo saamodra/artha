@@ -11,20 +11,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:artha/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  testWidgets('Wallet app smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(const ArthaDiamondWalletApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Wait for the widget to settle
+    await tester.pumpAndSettle();
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    // Verify that key elements are present
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('List of accounts'), findsOneWidget);
+    expect(find.text('Balance Trend'), findsOneWidget);
+    expect(find.text('Cash Flow'), findsOneWidget);
+    expect(find.text('RECORDS'), findsOneWidget);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Verify the floating action button exists
+    expect(find.byType(FloatingActionButton), findsOneWidget);
   });
 }
