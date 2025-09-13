@@ -6,6 +6,7 @@ import 'login_page.dart';
 import 'profile_page.dart';
 import 'services/record_service.dart';
 import 'main_navigation.dart';
+import 'pages/wallet_details_page.dart';
 
 void main() {
   runApp(const ArthaDiamondWalletApp());
@@ -128,65 +129,9 @@ class _WalletHomePageState extends State<WalletHomePage> {
       (account) => selectedWallets.contains(account['name']),
     );
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        title: Text(
-          'Account Details',
-          style: const TextStyle(color: Colors.white),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: selectedAccount['color'] as Color,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: selectedAccount['hasIcon'] == true
-                  ? const Icon(Icons.trending_up, color: Colors.white, size: 30)
-                  : const SizedBox(),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Account Name:',
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
-            ),
-            Text(
-              selectedAccount['name'] as String,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Balance:',
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
-            ),
-            Text(
-              recordService.getFormattedBalanceForAccount(
-                selectedAccount['name'] as String,
-              ),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close', style: TextStyle(color: Colors.blue)),
-          ),
-        ],
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => WalletDetailsPage(wallet: selectedAccount),
       ),
     );
   }
