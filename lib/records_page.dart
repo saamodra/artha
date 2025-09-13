@@ -80,24 +80,11 @@ class _RecordsPageState extends State<RecordsPage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF111111),
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: Colors.white),
-          onPressed: () {},
-        ),
         title: Text(
           pageTitle,
           style: const TextStyle(color: Colors.white, fontSize: 18),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Colors.white),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
-            onPressed: () {},
-          ),
-        ],
+        automaticallyImplyLeading: false,
       ),
       body: Column(
         children: [

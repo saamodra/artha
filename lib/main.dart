@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'records_page.dart';
 import 'reorder_wallets_page.dart';
 import 'auth_service.dart';
 import 'login_page.dart';
 import 'profile_page.dart';
-import 'pages/add_record_page.dart';
 import 'services/record_service.dart';
+import 'main_navigation.dart';
 
 void main() {
   runApp(const ArthaDiamondWalletApp());
@@ -37,7 +36,7 @@ class ArthaDiamondWalletApp extends StatelessWidget {
       home: const AuthWrapper(),
       routes: {
         '/login': (context) => const LoginPage(),
-        '/home': (context) => const WalletHomePage(),
+        '/home': (context) => const MainNavigation(),
         '/profile': (context) => const ProfilePage(),
       },
     );
@@ -53,7 +52,7 @@ class AuthWrapper extends StatelessWidget {
       animation: AuthService(),
       builder: (context, child) {
         if (AuthService().isAuthenticated) {
-          return const WalletHomePage();
+          return const MainNavigation();
         } else {
           return const LoginPage();
         }
@@ -277,52 +276,11 @@ class _WalletHomePageState extends State<WalletHomePage> {
         return Scaffold(
           appBar: AppBar(
             backgroundColor: const Color(0xFF111111),
-            leading: IconButton(
-              icon: const Icon(Icons.menu, color: Colors.white),
-              onPressed: () {},
-            ),
             title: const Text(
               'Home',
               style: TextStyle(color: Colors.white, fontSize: 18),
             ),
-            actions: [
-              IconButton(
-                onPressed: () {
-                  Navigator.of(context).pushNamed('/profile');
-                },
-                icon: const Icon(Icons.person, color: Colors.white70),
-              ),
-              OutlinedButton(
-                onPressed: () {
-                  // Pass selected wallets to RecordsPage
-                  final selectedWalletsList = isAllSelected
-                      ? <String>[] // Empty list means show all records
-                      : selectedWallets.toList();
-
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          RecordsPage(selectedWallets: selectedWalletsList),
-                    ),
-                  );
-                },
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.white24),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.view_list, color: Colors.white70),
-                    SizedBox(width: 8),
-                    Text('RECORDS', style: TextStyle(color: Colors.white70)),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
+            automaticallyImplyLeading: false,
           ),
           body: SafeArea(
             child: SingleChildScrollView(
@@ -347,17 +305,6 @@ class _WalletHomePageState extends State<WalletHomePage> {
                 ],
               ),
             ),
-          ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => AddRecordPage(wallets: getWallets()),
-                ),
-              );
-            },
-            backgroundColor: Colors.blue,
-            child: const Icon(Icons.add, color: Colors.white),
           ),
         );
       },
@@ -1180,39 +1127,11 @@ class AccountsListPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF111111),
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: Colors.white),
-          onPressed: () {},
-        ),
         title: const Text(
           'Home',
           style: TextStyle(color: Colors.white, fontSize: 18),
         ),
-        actions: [
-          Stack(
-            children: [
-              IconButton(
-                icon: const Icon(
-                  Icons.notifications_outlined,
-                  color: Colors.white,
-                ),
-                onPressed: () {},
-              ),
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+        automaticallyImplyLeading: false,
       ),
       body: SafeArea(
         child: Column(
@@ -1345,11 +1264,6 @@ class AccountsListPage extends StatelessWidget {
             ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: Colors.blue,
-        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
