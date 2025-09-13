@@ -92,7 +92,7 @@ class _ReorderWalletsPageState extends State<ReorderWalletsPage> {
                     child: Text(
                       'Long press and drag to reorder your wallets. The order will be reflected in the main screen.',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                         fontSize: 14,
                       ),
                     ),
@@ -163,7 +163,7 @@ class _ReorderWalletsPageState extends State<ReorderWalletsPage> {
           subtitle: Text(
             wallet['balance'] as String,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               fontSize: 14,
             ),
           ),
@@ -173,7 +173,7 @@ class _ReorderWalletsPageState extends State<ReorderWalletsPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.2),
+                  color: Colors.blue.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(

@@ -5,6 +5,8 @@ import 'reorder_wallets_page.dart';
 import 'auth_service.dart';
 import 'login_page.dart';
 import 'profile_page.dart';
+import 'pages/add_record_page.dart';
+import 'services/record_service.dart';
 
 void main() {
   runApp(const ArthaDiamondWalletApp());
@@ -71,6 +73,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
   Set<String> selectedWallets = {};
   bool isAllSelected = true;
   List<Map<String, dynamic>>? _reorderedWallets;
+  final RecordService recordService = RecordService();
 
   @override
   void initState() {
@@ -168,7 +171,9 @@ class _WalletHomePageState extends State<WalletHomePage> {
               style: const TextStyle(color: Colors.white70, fontSize: 14),
             ),
             Text(
-              selectedAccount['balance'] as String,
+              recordService.getFormattedBalanceForAccount(
+                selectedAccount['name'] as String,
+              ),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -254,112 +259,108 @@ class _WalletHomePageState extends State<WalletHomePage> {
   String _getSelectedWalletsBalance() {
     if (isAllSelected) {
       // Return total of all wallets
-      return 'IDR 433,565,157.00'; // Default total balance
+      final allWalletNames = getWallets()
+          .map((account) => account['name'] as String)
+          .toList();
+      return recordService.getFormattedTotalBalance(allWalletNames);
     } else {
       // Calculate balance for selected wallets
-      double totalBalance = 0;
-      final accounts = getWallets();
-
-      for (final account in accounts) {
-        if (selectedWallets.contains(account['name'])) {
-          String balanceStr = account['balance'] as String;
-          // Parse balance string (remove IDR, commas, etc.)
-          String numericPart = balanceStr
-              .replaceAll('IDR ', '')
-              .replaceAll(',', '')
-              .replaceAll('.00', '');
-
-          // Handle different currencies
-          if (balanceStr.startsWith('\$')) {
-            continue; // Skip USD for now
-          }
-
-          try {
-            totalBalance += double.parse(numericPart);
-          } catch (e) {
-            // Skip if parsing fails
-          }
-        }
-      }
-
-      // Format the balance
-      return 'IDR ${totalBalance.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}.00';
+      return recordService.getFormattedTotalBalance(selectedWallets.toList());
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF111111),
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: Colors.white),
-          onPressed: () {},
-        ),
-        title: const Text(
-          'Home',
-          style: TextStyle(color: Colors.white, fontSize: 18),
-        ),
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.of(context).pushNamed('/profile');
-            },
-            icon: const Icon(Icons.person, color: Colors.white70),
-          ),
-          OutlinedButton(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const RecordsPage()),
-              );
-            },
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Colors.white24),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+    return AnimatedBuilder(
+      animation: recordService,
+      builder: (context, child) {
+        return Scaffold(
+          appBar: AppBar(
+            backgroundColor: const Color(0xFF111111),
+            leading: IconButton(
+              icon: const Icon(Icons.menu, color: Colors.white),
+              onPressed: () {},
+            ),
+            title: const Text(
+              'Home',
+              style: TextStyle(color: Colors.white, fontSize: 18),
+            ),
+            actions: [
+              IconButton(
+                onPressed: () {
+                  Navigator.of(context).pushNamed('/profile');
+                },
+                icon: const Icon(Icons.person, color: Colors.white70),
               ),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.view_list, color: Colors.white70),
-                SizedBox(width: 8),
-                Text('RECORDS', style: TextStyle(color: Colors.white70)),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Accounts List Section
-              _buildAccountsListSection(),
-              const SizedBox(height: 24),
+              OutlinedButton(
+                onPressed: () {
+                  // Pass selected wallets to RecordsPage
+                  final selectedWalletsList = isAllSelected
+                      ? <String>[] // Empty list means show all records
+                      : selectedWallets.toList();
 
-              // Quick Actions
-              _buildQuickActions(),
-              const SizedBox(height: 24),
-
-              // Balance Trend Card
-              _buildBalanceTrendCard(),
-              const SizedBox(height: 24),
-
-              // Cash Flow Card
-              _buildCashFlowCard(),
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          RecordsPage(selectedWallets: selectedWalletsList),
+                    ),
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.white24),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.view_list, color: Colors.white70),
+                    SizedBox(width: 8),
+                    Text('RECORDS', style: TextStyle(color: Colors.white70)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
             ],
           ),
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: Colors.blue,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Accounts List Section
+                  _buildAccountsListSection(),
+                  const SizedBox(height: 24),
+
+                  // Quick Actions
+                  _buildQuickActions(),
+                  const SizedBox(height: 24),
+
+                  // Balance Trend Card
+                  _buildBalanceTrendCard(),
+                  const SizedBox(height: 24),
+
+                  // Cash Flow Card
+                  _buildCashFlowCard(),
+                ],
+              ),
+            ),
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => AddRecordPage(wallets: getWallets()),
+                ),
+              );
+            },
+            backgroundColor: Colors.blue,
+            child: const Icon(Icons.add, color: Colors.white),
+          ),
+        );
+      },
     );
   }
 
@@ -579,7 +580,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.2),
+                    color: Colors.green.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
@@ -682,7 +683,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
                       barWidth: 3,
                       belowBarData: BarAreaData(
                         show: true,
-                        color: Colors.blue.withOpacity(0.3),
+                        color: Colors.blue.withValues(alpha: 0.3),
                       ),
                       dotData: FlDotData(show: false),
                     ),
@@ -710,6 +711,12 @@ class _WalletHomePageState extends State<WalletHomePage> {
   }
 
   Widget _buildCashFlowCard() {
+    // Get today's cash flow
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    final cashFlow = recordService.getCashFlowSummary(startOfDay, endOfDay);
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -743,12 +750,12 @@ class _WalletHomePageState extends State<WalletHomePage> {
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'IDR 252,832.00',
+            Text(
+              'IDR ${(cashFlow['net']! >= 0 ? '+' : '')}${cashFlow['net']!.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: cashFlow['net']! >= 0 ? Colors.green : Colors.red,
               ),
             ),
             const SizedBox(height: 20),
@@ -761,9 +768,9 @@ class _WalletHomePageState extends State<WalletHomePage> {
                   'Income',
                   style: TextStyle(color: Colors.white, fontSize: 16),
                 ),
-                const Text(
-                  'IDR 263,732.00',
-                  style: TextStyle(
+                Text(
+                  'IDR ${cashFlow['income']!.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -773,7 +780,10 @@ class _WalletHomePageState extends State<WalletHomePage> {
             ),
             const SizedBox(height: 8),
             LinearProgressIndicator(
-              value: 0.9,
+              value: (cashFlow['income']! + cashFlow['expenses']!) > 0
+                  ? cashFlow['income']! /
+                        (cashFlow['income']! + cashFlow['expenses']!)
+                  : 0.0,
               backgroundColor: Colors.grey[800],
               valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
               minHeight: 8,
@@ -788,9 +798,9 @@ class _WalletHomePageState extends State<WalletHomePage> {
                   'Expenses',
                   style: TextStyle(color: Colors.white, fontSize: 16),
                 ),
-                const Text(
-                  '-IDR 10,900.00',
-                  style: TextStyle(
+                Text(
+                  '-IDR ${cashFlow['expenses']!.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -800,7 +810,10 @@ class _WalletHomePageState extends State<WalletHomePage> {
             ),
             const SizedBox(height: 8),
             LinearProgressIndicator(
-              value: 0.1,
+              value: (cashFlow['income']! + cashFlow['expenses']!) > 0
+                  ? cashFlow['expenses']! /
+                        (cashFlow['income']! + cashFlow['expenses']!)
+                  : 0.0,
               backgroundColor: Colors.grey[800],
               valueColor: const AlwaysStoppedAnimation<Color>(Colors.red),
               minHeight: 8,
@@ -828,7 +841,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
         child: Card(
           color: isSelected
               ? account['color'] as Color
-              : (account['color'] as Color).withOpacity(0.3),
+              : (account['color'] as Color).withValues(alpha: 0.3),
           margin: EdgeInsets.zero,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           child: Container(
@@ -852,7 +865,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
                       style: TextStyle(
                         color: isSelected
                             ? Colors.white
-                            : Colors.white.withOpacity(0.5),
+                            : Colors.white.withValues(alpha: 0.5),
                         fontWeight: FontWeight.w600,
                         fontSize: 10, // Smaller font
                       ),
@@ -861,11 +874,11 @@ class _WalletHomePageState extends State<WalletHomePage> {
                     ),
                   ),
                   Text(
-                    account['balance'] as String,
+                    recordService.getFormattedBalanceForAccount(accountName),
                     style: TextStyle(
                       color: isSelected
                           ? Colors.white
-                          : Colors.white.withOpacity(0.5),
+                          : Colors.white.withValues(alpha: 0.5),
                       fontWeight: FontWeight.w500,
                       fontSize: 10, // Smaller font
                     ),
@@ -1260,7 +1273,7 @@ class AccountsListPage extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.2),
+                      color: Colors.blue.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
