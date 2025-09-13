@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'records_page.dart';
 import 'reorder_wallets_page.dart';
+import 'auth_service.dart';
+import 'login_page.dart';
+import 'profile_page.dart';
 
 void main() {
   runApp(const ArthaDiamondWalletApp());
@@ -29,7 +32,30 @@ class ArthaDiamondWalletApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const WalletHomePage(),
+      home: const AuthWrapper(),
+      routes: {
+        '/login': (context) => const LoginPage(),
+        '/home': (context) => const WalletHomePage(),
+        '/profile': (context) => const ProfilePage(),
+      },
+    );
+  }
+}
+
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: AuthService(),
+      builder: (context, child) {
+        if (AuthService().isAuthenticated) {
+          return const WalletHomePage();
+        } else {
+          return const LoginPage();
+        }
+      },
     );
   }
 }
@@ -275,6 +301,12 @@ class _WalletHomePageState extends State<WalletHomePage> {
           style: TextStyle(color: Colors.white, fontSize: 18),
         ),
         actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.of(context).pushNamed('/profile');
+            },
+            icon: const Icon(Icons.person, color: Colors.white70),
+          ),
           OutlinedButton(
             onPressed: () {
               Navigator.of(context).push(
