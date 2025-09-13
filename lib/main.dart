@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'records_page.dart';
+import 'reorder_wallets_page.dart';
 
 void main() {
   runApp(const ArthaDiamondWalletApp());
@@ -14,12 +15,10 @@ class ArthaDiamondWalletApp extends StatelessWidget {
     return MaterialApp(
       title: 'Artha Diamond Wallet',
       theme: ThemeData.dark().copyWith(
-        useMaterial3: true,
         colorScheme: ColorScheme.dark(
           primary: Colors.blue,
           secondary: Colors.blueAccent,
           surface: const Color(0xFF1A1A1A),
-          background: const Color(0xFF111111),
         ),
         scaffoldBackgroundColor: const Color(0xFF111111),
         cardTheme: const CardThemeData(
@@ -45,14 +44,19 @@ class WalletHomePage extends StatefulWidget {
 class _WalletHomePageState extends State<WalletHomePage> {
   Set<String> selectedWallets = {};
   bool isAllSelected = true;
+  List<Map<String, dynamic>>? _reorderedWallets;
 
   @override
   void initState() {
     super.initState();
     // Initialize with all wallets selected
-    selectedWallets = getAllAccounts()
+    selectedWallets = getWallets()
         .map((account) => account['name'] as String)
         .toSet();
+  }
+
+  List<Map<String, dynamic>> getWallets() {
+    return _reorderedWallets ?? getAllAccounts();
   }
 
   void toggleWalletSelection(String walletName) {
@@ -73,15 +77,26 @@ class _WalletHomePageState extends State<WalletHomePage> {
 
   void selectAllWallets() {
     setState(() {
-      selectedWallets = getAllAccounts()
+      selectedWallets = getWallets()
           .map((account) => account['name'] as String)
           .toSet();
       isAllSelected = true;
     });
   }
 
+  void _onWalletsReordered(List<Map<String, dynamic>> reorderedWallets) {
+    setState(() {
+      _reorderedWallets = reorderedWallets;
+      // Update selected wallets to maintain the selection after reordering
+      selectedWallets = getWallets()
+          .map((account) => account['name'] as String)
+          .toSet()
+          .intersection(selectedWallets);
+    });
+  }
+
   void _showAccountDetail() {
-    final selectedAccount = getAllAccounts().firstWhere(
+    final selectedAccount = getWallets().firstWhere(
       (account) => selectedWallets.contains(account['name']),
     );
 
@@ -177,7 +192,14 @@ class _WalletHomePageState extends State<WalletHomePage> {
               ),
               onTap: () {
                 Navigator.of(context).pop();
-                // Add reorder functionality here
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => ReorderWalletsPage(
+                      initialWallets: getWallets(),
+                      onReorder: _onWalletsReordered,
+                    ),
+                  ),
+                );
               },
             ),
             ListTile(
@@ -210,7 +232,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
     } else {
       // Calculate balance for selected wallets
       double totalBalance = 0;
-      final accounts = getAllAccounts();
+      final accounts = getWallets();
 
       for (final account in accounts) {
         if (selectedWallets.contains(account['name'])) {
@@ -340,7 +362,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                ...getAllAccounts().map(
+                ...getWallets().map(
                   (account) =>
                       _buildCompactAccountCard(account, constraints.maxWidth),
                 ),
