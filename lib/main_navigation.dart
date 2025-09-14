@@ -30,17 +30,11 @@ class _MainNavigationState extends State<MainNavigation> {
   }
 
   void _onItemTapped(int index) {
-    if (index == 3) {
-      // Handle Add Record button specially
-      _showAddRecordPage();
-      return;
-    }
-
     setState(() {
       _selectedIndex = index;
     });
     _pageController.animateToPage(
-      index > 3 ? index - 1 : index, // Adjust for missing Add Record page
+      index,
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeInOut,
     );
@@ -61,20 +55,24 @@ class _MainNavigationState extends State<MainNavigation> {
         controller: _pageController,
         onPageChanged: (index) {
           setState(() {
-            _selectedIndex = index >= 3
-                ? index + 1
-                : index; // Adjust for Add Record
+            _selectedIndex = index;
           });
         },
         children: [
-          const WalletHomePage(), // Home
-          const WalletListPage(), // WalletList
-          const DebtsPage(), // Debts
-          const RecordsFilterPage(), // Records
-          const ProfilePage(), // Profile
+          const WalletHomePage(), // Home - index 0
+          const WalletListPage(), // Wallet - index 1
+          const RecordsFilterPage(), // Records - index 2
+          const DebtsPage(), // Debts - index 3
+          const ProfilePage(), // Profile - index 4
         ],
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddRecordPage,
+        backgroundColor: Colors.blue,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 
@@ -108,24 +106,23 @@ class _MainNavigationState extends State<MainNavigation> {
               ),
               Flexible(
                 child: _buildNavItem(
-                  icon: Icons.credit_card,
-                  label: 'Debts',
+                  icon: Icons.receipt_long,
+                  label: 'Records',
                   index: 2,
                 ),
               ),
-              _buildAddButton(),
               Flexible(
                 child: _buildNavItem(
-                  icon: Icons.receipt_long,
-                  label: 'Records',
-                  index: 4,
+                  icon: Icons.credit_card,
+                  label: 'Debts',
+                  index: 3,
                 ),
               ),
               Flexible(
                 child: _buildNavItem(
                   icon: Icons.person,
                   label: 'Profile',
-                  index: 5,
+                  index: 4,
                 ),
               ),
             ],
@@ -174,45 +171,6 @@ class _MainNavigationState extends State<MainNavigation> {
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAddButton() {
-    return GestureDetector(
-      onTap: () => _onItemTapped(3),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 56,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.blue,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.blue.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Icon(Icons.add, color: Colors.white, size: 24),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Add Record',
-              style: TextStyle(
-                color: Colors.blue,
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-              ),
             ),
           ],
         ),
