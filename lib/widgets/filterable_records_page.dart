@@ -9,6 +9,7 @@ class FilterableRecordsPage extends StatefulWidget {
   specificWallet; // If provided, only shows records for this wallet
   final RecordService recordService;
   final List<Map<String, dynamic>> wallets;
+  final bool showBackButton; // Controls whether to show back button
 
   const FilterableRecordsPage({
     super.key,
@@ -16,6 +17,7 @@ class FilterableRecordsPage extends StatefulWidget {
     required this.recordService,
     required this.wallets,
     this.specificWallet,
+    this.showBackButton = true, // Default to true for backward compatibility
   });
 
   @override
@@ -106,10 +108,13 @@ class _FilterableRecordsPageState extends State<FilterableRecordsPage> {
           widget.title,
           style: const TextStyle(color: Colors.white, fontSize: 18),
         ),
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-        ),
+        leading: widget.showBackButton
+            ? IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+              )
+            : null,
+        automaticallyImplyLeading: widget.showBackButton,
         actions: [
           IconButton(
             onPressed: _showFilters,

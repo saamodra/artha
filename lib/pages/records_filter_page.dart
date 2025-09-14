@@ -18,6 +18,7 @@ class _RecordsFilterPageState extends State<RecordsFilterPage> {
       title: 'Records',
       recordService: recordService,
       wallets: _getAllAccounts(),
+      showBackButton: false, // No back button when accessed from bottom navbar
     );
   }
 

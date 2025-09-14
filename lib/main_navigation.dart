@@ -3,6 +3,7 @@ import 'main.dart';
 import 'pages/wallet_list_page.dart';
 import 'pages/records_filter_page.dart';
 import 'pages/add_record_page.dart';
+import 'pages/debts_page.dart';
 import 'profile_page.dart';
 
 class MainNavigation extends StatefulWidget {
@@ -29,7 +30,7 @@ class _MainNavigationState extends State<MainNavigation> {
   }
 
   void _onItemTapped(int index) {
-    if (index == 2) {
+    if (index == 3) {
       // Handle Add Record button specially
       _showAddRecordPage();
       return;
@@ -39,7 +40,7 @@ class _MainNavigationState extends State<MainNavigation> {
       _selectedIndex = index;
     });
     _pageController.animateToPage(
-      index > 2 ? index - 1 : index, // Adjust for missing Add Record page
+      index > 3 ? index - 1 : index, // Adjust for missing Add Record page
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeInOut,
     );
@@ -60,7 +61,7 @@ class _MainNavigationState extends State<MainNavigation> {
         controller: _pageController,
         onPageChanged: (index) {
           setState(() {
-            _selectedIndex = index >= 2
+            _selectedIndex = index >= 3
                 ? index + 1
                 : index; // Adjust for Add Record
           });
@@ -68,6 +69,7 @@ class _MainNavigationState extends State<MainNavigation> {
         children: [
           const WalletHomePage(), // Home
           const WalletListPage(), // WalletList
+          const DebtsPage(), // Debts
           const RecordsFilterPage(), // Records
           const ProfilePage(), // Profile
         ],
@@ -92,21 +94,40 @@ class _MainNavigationState extends State<MainNavigation> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildNavItem(icon: Icons.home, label: 'Home', index: 0),
-              _buildNavItem(
-                icon: Icons.account_balance_wallet,
-                label: 'WalletList',
-                index: 1,
+              Flexible(
+                child: _buildNavItem(icon: Icons.home, label: 'Home', index: 0),
+              ),
+              Flexible(
+                child: _buildNavItem(
+                  icon: Icons.account_balance_wallet,
+                  label: 'Wallet',
+                  index: 1,
+                ),
+              ),
+              Flexible(
+                child: _buildNavItem(
+                  icon: Icons.credit_card,
+                  label: 'Debts',
+                  index: 2,
+                ),
               ),
               _buildAddButton(),
-              _buildNavItem(
-                icon: Icons.receipt_long,
-                label: 'Records',
-                index: 3,
+              Flexible(
+                child: _buildNavItem(
+                  icon: Icons.receipt_long,
+                  label: 'Records',
+                  index: 4,
+                ),
               ),
-              _buildNavItem(icon: Icons.person, label: 'Profile', index: 4),
+              Flexible(
+                child: _buildNavItem(
+                  icon: Icons.person,
+                  label: 'Profile',
+                  index: 5,
+                ),
+              ),
             ],
           ),
         ),
@@ -124,7 +145,7 @@ class _MainNavigationState extends State<MainNavigation> {
     return GestureDetector(
       onTap: () => _onItemTapped(index),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -147,9 +168,12 @@ class _MainNavigationState extends State<MainNavigation> {
               label,
               style: TextStyle(
                 color: isSelected ? Colors.blue : Colors.white70,
-                fontSize: 10,
+                fontSize: 9,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -159,7 +183,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
   Widget _buildAddButton() {
     return GestureDetector(
-      onTap: () => _onItemTapped(2),
+      onTap: () => _onItemTapped(3),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
         child: Column(

@@ -62,6 +62,8 @@ class RecordCategories {
       'Bonus',
       'Gift Received',
       'Refund',
+      'Debt Repayment',
+      'Debt Increase',
       'Other Income',
     ],
     RecordType.expense: [
@@ -84,6 +86,8 @@ class RecordCategories {
       'Sports & Fitness',
       'Subscriptions',
       'Taxes',
+      'Debt Repayment',
+      'Debt Increase',
       'Other Expenses',
     ],
     RecordType.transfer: [

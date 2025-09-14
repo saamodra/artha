@@ -7,6 +7,7 @@ import 'profile_page.dart';
 import 'services/record_service.dart';
 import 'main_navigation.dart';
 import 'pages/wallet_details_page.dart';
+import 'pages/debts_page.dart';
 
 void main() {
   runApp(const ArthaDiamondWalletApp());
@@ -213,6 +214,24 @@ class _WalletHomePageState extends State<WalletHomePage> {
     }
   }
 
+  void _onQuickActionTap(int index) {
+    switch (index) {
+      case 0: // Debts
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => const DebtsPage()));
+        break;
+      case 1: // Cash-flow
+        // TODO: Implement cash-flow page
+        break;
+      case 2: // Balance (already selected)
+        break;
+      case 3: // Loyalty card
+        // TODO: Implement loyalty card page
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -375,37 +394,40 @@ class _WalletHomePageState extends State<WalletHomePage> {
           final action = actions[index];
           final isSelected = index == 2; // Balance is selected
 
-          return Container(
-            margin: const EdgeInsets.only(right: 24),
-            child: Column(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? action['color'] as Color
-                        : Colors.grey[800],
-                    shape: BoxShape.circle,
+          return GestureDetector(
+            onTap: () => _onQuickActionTap(index),
+            child: Container(
+              margin: const EdgeInsets.only(right: 24),
+              child: Column(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? action['color'] as Color
+                          : Colors.grey[800],
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      action['icon'] as IconData,
+                      color: Colors.white,
+                      size: 24,
+                    ),
                   ),
-                  child: Icon(
-                    action['icon'] as IconData,
-                    color: Colors.white,
-                    size: 24,
+                  const SizedBox(height: 8),
+                  Text(
+                    action['label'] as String,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.white70,
+                      fontSize: 12,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  action['label'] as String,
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.white70,
-                    fontSize: 12,
-                    fontWeight: isSelected
-                        ? FontWeight.w600
-                        : FontWeight.normal,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         },
