@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../models/wallet_record.dart';
 import '../services/record_service.dart';
+import '../widgets/record_item.dart';
+import '../widgets/filterable_records_page.dart';
 import 'add_record_page.dart';
 
 class WalletDetailsPage extends StatefulWidget {
@@ -495,107 +497,19 @@ class _WalletDetailsPageState extends State<WalletDetailsPage> {
             else
               Column(
                 children: recentRecords
-                    .map((record) => _buildRecordItem(record))
+                    .map(
+                      (record) => RecordItem(
+                        record: record,
+                        wallets: _getAllAccounts(),
+                        recordService: recordService,
+                        onRecordChanged: () => setState(() {}),
+                        contextWalletName: widget.wallet['name'] as String,
+                      ),
+                    )
                     .toList(),
               ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildRecordItem(WalletRecord record) {
-    final walletName = widget.wallet['name'] as String;
-
-    Color amountColor;
-    String amountPrefix;
-
-    if (record.type == RecordType.transfer) {
-      if (record.transferToAccount == walletName) {
-        // Incoming transfer
-        amountColor = Colors.green;
-        amountPrefix = '+';
-      } else {
-        // Outgoing transfer
-        amountColor = Colors.red;
-        amountPrefix = '-';
-      }
-    } else if (record.type == RecordType.income) {
-      amountColor = Colors.green;
-      amountPrefix = '+';
-    } else {
-      amountColor = Colors.red;
-      amountPrefix = '-';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Row(
-        children: [
-          // Category icon
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: _getIconColorForCategory(record.category, record.type),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              _getIconForCategory(record.category, record.type),
-              color: Colors.white,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-
-          // Record details
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  record.category,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                if (record.type == RecordType.transfer)
-                  Text(
-                    '${record.account} → ${record.transferToAccount}',
-                    style: const TextStyle(color: Colors.white70, fontSize: 12),
-                  ),
-                if (record.note != null && record.note!.isNotEmpty)
-                  Text(
-                    record.note!,
-                    style: const TextStyle(color: Colors.white60, fontSize: 11),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-              ],
-            ),
-          ),
-
-          // Amount and date
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '$amountPrefix IDR ${_formatAmount(record.amount)}',
-                style: TextStyle(
-                  color: amountColor,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Text(
-                _formatDate(record.dateTime),
-                style: const TextStyle(color: Colors.white70, fontSize: 11),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }
@@ -652,30 +566,11 @@ class _WalletDetailsPageState extends State<WalletDetailsPage> {
     final walletName = widget.wallet['name'] as String;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => Scaffold(
-          backgroundColor: const Color(0xFF111111),
-          appBar: AppBar(
-            backgroundColor: const Color(0xFF111111),
-            title: Text(
-              '$walletName Records',
-              style: const TextStyle(color: Colors.white),
-            ),
-            leading: IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-            ),
-          ),
-          body: AnimatedBuilder(
-            animation: recordService,
-            builder: (context, child) {
-              final records = recordService.getRecordsForAccount(walletName);
-              return ListView.builder(
-                itemCount: records.length,
-                itemBuilder: (context, index) =>
-                    _buildRecordItem(records[index]),
-              );
-            },
-          ),
+        builder: (context) => FilterableRecordsPage(
+          title: '$walletName Records',
+          specificWallet: walletName,
+          recordService: recordService,
+          wallets: _getAllAccounts(),
         ),
       ),
     );
@@ -782,123 +677,6 @@ class _WalletDetailsPageState extends State<WalletDetailsPage> {
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]},',
         );
-  }
-
-  String _formatDate(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime).inDays;
-
-    if (difference == 0) {
-      return 'Today';
-    } else if (difference == 1) {
-      return 'Yesterday';
-    } else if (difference < 7) {
-      return '$difference days ago';
-    } else {
-      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
-    }
-  }
-
-  IconData _getIconForCategory(String category, RecordType type) {
-    switch (type) {
-      case RecordType.income:
-        return Icons.monetization_on;
-      case RecordType.transfer:
-        return Icons.swap_horiz;
-      case RecordType.expense:
-        switch (category.toLowerCase()) {
-          case 'food & drinks':
-            return Icons.restaurant;
-          case 'shopping':
-            return Icons.shopping_bag;
-          case 'transportation':
-          case 'vehicle':
-            return Icons.directions_car;
-          case 'healthcare':
-            return Icons.local_hospital;
-          case 'entertainment':
-            return Icons.movie;
-          case 'education':
-            return Icons.school;
-          case 'bills & utilities':
-            return Icons.receipt;
-          case 'insurance':
-            return Icons.security;
-          case 'groceries':
-            return Icons.shopping_cart;
-          case 'travel':
-            return Icons.flight;
-          case 'charity':
-            return Icons.favorite;
-          case 'personal care':
-            return Icons.spa;
-          case 'home & garden':
-            return Icons.home;
-          case 'technology':
-            return Icons.computer;
-          case 'clothing & accessories':
-            return Icons.checkroom;
-          case 'sports & fitness':
-            return Icons.fitness_center;
-          case 'subscriptions':
-            return Icons.subscriptions;
-          case 'taxes':
-            return Icons.account_balance;
-          default:
-            return Icons.shopping_bag;
-        }
-    }
-  }
-
-  Color _getIconColorForCategory(String category, RecordType type) {
-    switch (type) {
-      case RecordType.income:
-        return Colors.green;
-      case RecordType.transfer:
-        return Colors.blue;
-      case RecordType.expense:
-        switch (category.toLowerCase()) {
-          case 'food & drinks':
-            return Colors.red;
-          case 'shopping':
-            return Colors.purple;
-          case 'transportation':
-          case 'vehicle':
-            return Colors.orange;
-          case 'healthcare':
-            return Colors.pink;
-          case 'entertainment':
-            return Colors.indigo;
-          case 'education':
-            return Colors.teal;
-          case 'bills & utilities':
-            return Colors.brown;
-          case 'insurance':
-            return Colors.cyan;
-          case 'groceries':
-            return Colors.lime;
-          case 'travel':
-            return Colors.deepPurple;
-          case 'charity':
-            return Colors.red[300]!;
-          case 'personal care':
-            return Colors.pink[300]!;
-          case 'home & garden':
-            return Colors.green[700]!;
-          case 'technology':
-            return Colors.blue[600]!;
-          case 'clothing & accessories':
-            return Colors.lightBlue;
-          case 'sports & fitness':
-            return Colors.green;
-          case 'subscriptions':
-            return Colors.amber;
-          case 'taxes':
-            return Colors.grey;
-          default:
-            return Colors.grey;
-        }
-    }
   }
 
   List<Map<String, dynamic>> _getAllAccounts() {

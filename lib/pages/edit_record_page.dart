@@ -3,36 +3,44 @@ import 'package:flutter/services.dart';
 import '../models/wallet_record.dart';
 import '../services/record_service.dart';
 
-class AddRecordPage extends StatefulWidget {
+class EditRecordPage extends StatefulWidget {
+  final WalletRecord record;
   final List<Map<String, dynamic>> wallets;
 
-  const AddRecordPage({super.key, required this.wallets});
+  const EditRecordPage({
+    super.key,
+    required this.record,
+    required this.wallets,
+  });
 
   @override
-  State<AddRecordPage> createState() => _AddRecordPageState();
+  State<EditRecordPage> createState() => _EditRecordPageState();
 }
 
-class _AddRecordPageState extends State<AddRecordPage> {
+class _EditRecordPageState extends State<EditRecordPage> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
   final _noteController = TextEditingController();
   final _labelController = TextEditingController();
 
-  RecordType _selectedType = RecordType.expense;
+  late RecordType _selectedType;
   String? _selectedCategory;
   String? _selectedAccount;
   String? _selectedTransferToAccount;
-  DateTime _selectedDateTime = DateTime.now();
+  late DateTime _selectedDateTime;
 
   @override
   void initState() {
     super.initState();
-    // Set default account to first wallet if available
-    if (widget.wallets.isNotEmpty) {
-      _selectedAccount = widget.wallets.first['name'] as String;
-    }
-    // Set default category based on type
-    _updateCategoryForType();
+    // Initialize with existing record values
+    _selectedType = widget.record.type;
+    _selectedCategory = widget.record.category;
+    _selectedAccount = widget.record.account;
+    _selectedTransferToAccount = widget.record.transferToAccount;
+    _selectedDateTime = widget.record.dateTime;
+    _amountController.text = widget.record.amount.toString();
+    _noteController.text = widget.record.note ?? '';
+    _labelController.text = widget.record.label ?? '';
   }
 
   @override
@@ -45,7 +53,7 @@ class _AddRecordPageState extends State<AddRecordPage> {
 
   void _updateCategoryForType() {
     final categories = RecordCategories.getCategoriesForType(_selectedType);
-    if (categories.isNotEmpty) {
+    if (categories.isNotEmpty && !categories.contains(_selectedCategory)) {
       _selectedCategory = categories.first;
     }
   }
@@ -118,7 +126,7 @@ class _AddRecordPageState extends State<AddRecordPage> {
     }
   }
 
-  void _saveRecord() {
+  void _updateRecord() {
     if (_formKey.currentState!.validate()) {
       if (_selectedType == RecordType.transfer &&
           _selectedTransferToAccount == null) {
@@ -142,8 +150,8 @@ class _AddRecordPageState extends State<AddRecordPage> {
         return;
       }
 
-      final record = WalletRecord(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+      final updatedRecord = WalletRecord(
+        id: widget.record.id, // Keep the same ID
         type: _selectedType,
         category: _selectedCategory!,
         account: _selectedAccount!,
@@ -154,18 +162,57 @@ class _AddRecordPageState extends State<AddRecordPage> {
         label: _labelController.text.isEmpty ? null : _labelController.text,
       );
 
-      RecordService().addRecord(record);
+      RecordService().updateRecord(updatedRecord);
 
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '${_selectedType.name.toUpperCase()} record added successfully',
+            '${_selectedType.name.toUpperCase()} record updated successfully',
           ),
           backgroundColor: Colors.green,
         ),
       );
     }
+  }
+
+  void _deleteRecord() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1A1A1A),
+          title: const Text(
+            'Delete Record',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: const Text(
+            'Are you sure you want to delete this record? This action cannot be undone.',
+            style: TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                RecordService().deleteRecord(widget.record.id);
+                Navigator.of(context).pop(); // Close dialog
+                Navigator.of(context).pop(); // Close edit page
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Record deleted successfully'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              },
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -178,12 +225,16 @@ class _AddRecordPageState extends State<AddRecordPage> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
-          'Add Record',
+          'Edit Record',
           style: TextStyle(color: Colors.white, fontSize: 18),
         ),
         actions: [
+          IconButton(
+            onPressed: _deleteRecord,
+            icon: const Icon(Icons.delete, color: Colors.red),
+          ),
           TextButton(
-            onPressed: _saveRecord,
+            onPressed: _updateRecord,
             child: const Text(
               'SAVE',
               style: TextStyle(color: Colors.blue, fontWeight: FontWeight.w600),
@@ -537,27 +588,52 @@ class _AddRecordPageState extends State<AddRecordPage> {
 
               const SizedBox(height: 24),
 
-              // Save Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _saveRecord,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _deleteRecord,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        'DELETE',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
-                  child: Text(
-                    'SAVE ${_selectedType.name.toUpperCase()}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      onPressed: _updateRecord,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        'UPDATE ${_selectedType.name.toUpperCase()}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
