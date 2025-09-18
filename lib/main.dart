@@ -5,6 +5,7 @@ import 'auth_service.dart';
 import 'login_page.dart';
 import 'profile_page.dart';
 import 'services/record_service.dart';
+import 'services/wallet_service.dart';
 import 'main_navigation.dart';
 import 'pages/wallet_details_page.dart';
 import 'pages/debts_page.dart';
@@ -75,6 +76,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
   bool isAllSelected = true;
   List<Map<String, dynamic>>? _reorderedWallets;
   final RecordService recordService = RecordService();
+  final WalletService walletService = WalletService();
 
   @override
   void initState() {
@@ -86,7 +88,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
   }
 
   List<Map<String, dynamic>> getWallets() {
-    return _reorderedWallets ?? getAllAccounts();
+    return _reorderedWallets ?? walletService.getWalletsInLegacyFormat();
   }
 
   void toggleWalletSelection(String walletName) {
@@ -846,7 +848,8 @@ class _WalletHomePageState extends State<WalletHomePage> {
     );
   }
 
-  List<Map<String, dynamic>> getAllAccounts() {
+  // Deprecated: Use WalletService instead
+  List<Map<String, dynamic>> _deprecatedGetAllAccounts() {
     return [
       {
         'name': 'Cashfile',
@@ -1091,6 +1094,7 @@ class AccountsListPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final walletService = WalletService();
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF111111),
@@ -1184,7 +1188,7 @@ class AccountsListPage extends StatelessWidget {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          ...getAllAccounts().map(
+                          ...walletService.getWalletsInLegacyFormat().map(
                             (account) => _buildCompactAccountCard(
                               account,
                               constraints.maxWidth,
@@ -1331,7 +1335,8 @@ class AccountsListPage extends StatelessWidget {
     );
   }
 
-  List<Map<String, dynamic>> getAllAccounts() {
+  // Deprecated: Use WalletService instead
+  List<Map<String, dynamic>> _deprecatedGetAllAccounts() {
     return [
       {
         'name': 'Cashfile',

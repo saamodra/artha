@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/record_service.dart';
+import '../services/wallet_service.dart';
 import 'wallet_details_page.dart';
+import 'add_wallet_page.dart';
 
 class WalletListPage extends StatefulWidget {
   const WalletListPage({super.key});
@@ -11,6 +13,7 @@ class WalletListPage extends StatefulWidget {
 
 class _WalletListPageState extends State<WalletListPage> {
   final RecordService recordService = RecordService();
+  final WalletService walletService = WalletService();
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +37,7 @@ class _WalletListPageState extends State<WalletListPage> {
       ),
       body: SafeArea(
         child: AnimatedBuilder(
-          animation: recordService,
+          animation: Listenable.merge([recordService, walletService]),
           builder: (context, child) {
             return SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
@@ -66,10 +69,7 @@ class _WalletListPageState extends State<WalletListPage> {
   }
 
   Widget _buildSummarySection() {
-    final allWalletNames = _getAllAccounts()
-        .map((account) => account['name'] as String)
-        .toList();
-    final totalBalance = recordService.getFormattedTotalBalance(allWalletNames);
+    final totalBalance = walletService.getFormattedTotalBalance();
 
     return Card(
       color: const Color(0xFF1A1A1A),
@@ -101,7 +101,7 @@ class _WalletListPageState extends State<WalletListPage> {
                 Expanded(
                   child: _buildSummaryItem(
                     'Active Accounts',
-                    '${_getAllAccounts().length}',
+                    '${walletService.wallets.length}',
                     Icons.account_balance_wallet,
                     Colors.blue,
                   ),
@@ -167,7 +167,7 @@ class _WalletListPageState extends State<WalletListPage> {
   }
 
   Widget _buildAccountsGrid() {
-    final accounts = _getAllAccounts();
+    final accounts = walletService.getWalletsInLegacyFormat();
 
     return Column(
       children: [
@@ -264,8 +264,15 @@ class _WalletListPageState extends State<WalletListPage> {
               color: Colors.blue,
               size: 16,
             ),
-            onTap: () {
-              _showComingSoonDialog('Add Account');
+            onTap: () async {
+              final result = await Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const AddWalletPage()),
+              );
+
+              // Refresh the page if a wallet was added
+              if (result == true && mounted) {
+                setState(() {});
+              }
             },
           ),
         ),
@@ -352,9 +359,18 @@ class _WalletListPageState extends State<WalletListPage> {
                 'Add Account',
                 style: TextStyle(color: Colors.white),
               ),
-              onTap: () {
+              onTap: () async {
                 Navigator.of(context).pop();
-                _showComingSoonDialog('Add Account');
+                final result = await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const AddWalletPage(),
+                  ),
+                );
+
+                // Refresh the page if a wallet was added
+                if (result == true && mounted) {
+                  setState(() {});
+                }
               },
             ),
             ListTile(
@@ -409,82 +425,5 @@ class _WalletListPageState extends State<WalletListPage> {
         ],
       ),
     );
-  }
-
-  List<Map<String, dynamic>> _getAllAccounts() {
-    return [
-      {
-        'name': 'Cashfile',
-        'balance': 'IDR 90,000.00',
-        'color': const Color(0xFF8D6E63),
-        'hasIcon': false,
-      },
-      {
-        'name': 'Cash',
-        'balance': 'IDR 349,000.00',
-        'color': const Color(0xFF8D6E63),
-        'hasIcon': false,
-      },
-      {
-        'name': 'BRI',
-        'balance': 'IDR 262,337.00',
-        'color': Colors.blue,
-        'hasIcon': false,
-      },
-      {
-        'name': 'Ajaib Stocks',
-        'balance': 'IDR 41,693,789.00',
-        'color': Colors.blue,
-        'hasIcon': true,
-      },
-      {
-        'name': 'Ajaib Kripto',
-        'balance': 'IDR 11,485,644.00',
-        'color': Colors.purple,
-        'hasIcon': false,
-      },
-      {
-        'name': 'Bibit',
-        'balance': 'IDR 236,371,256.00',
-        'color': Colors.green,
-        'hasIcon': false,
-      },
-      {
-        'name': 'SeaBank',
-        'balance': 'IDR 4,263,340.00',
-        'color': Colors.orange,
-        'hasIcon': false,
-      },
-      {
-        'name': 'BCA',
-        'balance': 'IDR 16,237,019.00',
-        'color': Colors.blue,
-        'hasIcon': false,
-      },
-      {
-        'name': 'Bibit Saham',
-        'balance': 'IDR 16,065,682.00',
-        'color': Colors.grey,
-        'hasIcon': true,
-      },
-      {
-        'name': 'Bibit Saham 2',
-        'balance': 'IDR 92,196,754.00',
-        'color': Colors.orange,
-        'hasIcon': true,
-      },
-      {
-        'name': 'Shopeepay',
-        'balance': 'IDR 372,623.00',
-        'color': Colors.orange,
-        'hasIcon': false,
-      },
-      {
-        'name': 'Permata',
-        'balance': 'IDR 6,570.00',
-        'color': Colors.green,
-        'hasIcon': false,
-      },
-    ];
   }
 }
