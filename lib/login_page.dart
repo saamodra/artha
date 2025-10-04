@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'auth_service.dart';
+import 'config/supabase_config.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -19,9 +20,11 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    // Auto-fill for development
-    _emailController.text = 'samodra.me@gmail.com';
-    _passwordController.text = 'OuerK^V1FY3TQJ';
+    // Auto-fill for development from environment variables
+    if (SupabaseConfig.hasDevCredentials) {
+      _emailController.text = SupabaseConfig.devEmail!;
+      _passwordController.text = SupabaseConfig.devPassword!;
+    }
   }
 
   @override

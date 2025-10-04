@@ -52,12 +52,31 @@ class SupabaseConfig {
         key.isNotEmpty;
   }
 
+  // Development credentials for auto-fill
+  static String? get devEmail {
+    return dotenv.env['DEV_EMAIL'];
+  }
+
+  static String? get devPassword {
+    return dotenv.env['DEV_PASSWORD'];
+  }
+
+  static bool get hasDevCredentials {
+    return devEmail != null &&
+        devPassword != null &&
+        devEmail!.isNotEmpty &&
+        devPassword!.isNotEmpty;
+  }
+
   static void printConfigStatus() {
     if (kDebugMode) {
       print('🔧 Supabase Configuration Status:');
       print('   URL: ${supabaseUrl.substring(0, 30)}...');
       print('   Key: ${supabaseAnonKey.substring(0, 10)}...');
       print('   Configured: $isConfigured');
+      print(
+        '   Dev Credentials: ${hasDevCredentials ? "Available" : "Not configured"}',
+      );
     }
   }
 }
