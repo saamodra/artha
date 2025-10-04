@@ -68,7 +68,37 @@ class AuthWrapper extends StatelessWidget {
     return AnimatedBuilder(
       animation: AuthService(),
       builder: (context, child) {
-        if (AuthService().isAuthenticated) {
+        final authService = AuthService();
+
+        // Show loading screen while checking authentication
+        if (authService.isLoading) {
+          return const Scaffold(
+            backgroundColor: Color(0xFF111111),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.account_balance_wallet,
+                    size: 80,
+                    color: Colors.blue,
+                  ),
+                  SizedBox(height: 24),
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Loading...',
+                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        if (authService.isAuthenticated) {
           return const MainNavigation();
         } else {
           return const LoginPage();
