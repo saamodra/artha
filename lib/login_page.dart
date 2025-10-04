@@ -10,14 +10,23 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController(text: 'admin');
-  final _passwordController = TextEditingController(text: 'password123');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _isSignUp = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-fill for development
+    _emailController.text = 'samodra.me@gmail.com';
+    _passwordController.text = 'OuerK^V1FY3TQJ';
+  }
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -28,23 +37,61 @@ class _LoginPageState extends State<LoginPage> {
         _isLoading = true;
       });
 
-      final authService = AuthService();
-      final success = await authService.login(
-        _usernameController.text.trim(),
-        _passwordController.text,
-      );
+      try {
+        final authService = AuthService();
 
-      setState(() {
-        _isLoading = false;
-      });
+        if (_isSignUp) {
+          final response = await authService.signUp(
+            _emailController.text.trim(),
+            _passwordController.text,
+          );
 
-      if (success) {
-        if (mounted) {
-          Navigator.of(context).pushReplacementNamed('/home');
+          if (mounted) {
+            if (response.user != null) {
+              _showSuccessDialog(
+                'Account created successfully! Please check your email to verify your account.',
+              );
+            } else {
+              _showErrorDialog('Failed to create account. Please try again.');
+            }
+          }
+        } else {
+          final response = await authService.login(
+            _emailController.text.trim(),
+            _passwordController.text,
+          );
+
+          if (mounted) {
+            if (response.user != null) {
+              Navigator.of(context).pushReplacementNamed('/home');
+            } else {
+              _showErrorDialog('Login failed. Please check your credentials.');
+            }
+          }
         }
-      } else {
+      } catch (e) {
         if (mounted) {
-          _showErrorDialog('Invalid username or password');
+          String errorMessage = 'An error occurred. Please try again.';
+
+          if (e.toString().contains('Invalid login credentials')) {
+            errorMessage = 'Invalid email or password.';
+          } else if (e.toString().contains('Email not confirmed')) {
+            errorMessage = 'Please check your email and confirm your account.';
+          } else if (e.toString().contains('User already registered')) {
+            errorMessage = 'An account with this email already exists.';
+          } else if (e.toString().contains('Password should be at least')) {
+            errorMessage = 'Password should be at least 6 characters long.';
+          } else if (e.toString().contains('Invalid email')) {
+            errorMessage = 'Please enter a valid email address.';
+          }
+
+          _showErrorDialog(errorMessage);
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
         }
       }
     }
@@ -55,9 +102,9 @@ class _LoginPageState extends State<LoginPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text(
-          'Login Failed',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          _isSignUp ? 'Sign Up Failed' : 'Login Failed',
+          style: const TextStyle(color: Colors.white),
         ),
         content: Text(message, style: const TextStyle(color: Colors.white70)),
         actions: [
@@ -70,34 +117,96 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void _showCredentialsHint() {
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text('Success', style: TextStyle(color: Colors.white)),
+        content: Text(message, style: const TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              setState(() {
+                _isSignUp = false;
+                _emailController.clear();
+                _passwordController.clear();
+              });
+            },
+            child: const Text('OK', style: TextStyle(color: Colors.blue)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showForgotPasswordDialog() {
+    final emailController = TextEditingController();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
         title: const Text(
-          'Demo Credentials',
+          'Reset Password',
           style: TextStyle(color: Colors.white),
         ),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Username: admin',
-              style: TextStyle(color: Colors.white70, fontFamily: 'monospace'),
+            const Text(
+              'Enter your email address and we\'ll send you a password reset link.',
+              style: TextStyle(color: Colors.white70),
             ),
-            SizedBox(height: 8),
-            Text(
-              'Password: password123',
-              style: TextStyle(color: Colors.white70, fontFamily: 'monospace'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: emailController,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                labelStyle: TextStyle(color: Colors.white70),
+                filled: true,
+                fillColor: Color(0xFF2A2A2A),
+                border: OutlineInputBorder(),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.blue),
+                ),
+              ),
+              style: const TextStyle(color: Colors.white),
+              keyboardType: TextInputType.emailAddress,
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Got it', style: TextStyle(color: Colors.blue)),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (emailController.text.isNotEmpty) {
+                try {
+                  final authService = AuthService();
+                  await authService.resetPassword(emailController.text.trim());
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                    _showSuccessDialog(
+                      'Password reset email sent! Please check your inbox.',
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    _showErrorDialog(
+                      'Failed to send reset email. Please try again.',
+                    );
+                  }
+                }
+              }
+            },
+            child: const Text(
+              'Send Reset Link',
+              style: TextStyle(color: Colors.blue),
+            ),
           ),
         ],
       ),
@@ -142,14 +251,14 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 48),
 
-                  // Username field
+                  // Email field
                   TextFormField(
-                    controller: _usernameController,
+                    controller: _emailController,
                     decoration: InputDecoration(
-                      labelText: 'Username',
+                      labelText: 'Email',
                       labelStyle: const TextStyle(color: Colors.white70),
                       prefixIcon: const Icon(
-                        Icons.person,
+                        Icons.email,
                         color: Colors.white70,
                       ),
                       filled: true,
@@ -174,9 +283,15 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     style: const TextStyle(color: Colors.white),
+                    keyboardType: TextInputType.emailAddress,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter your username';
+                        return 'Please enter your email';
+                      }
+                      if (!RegExp(
+                        r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                      ).hasMatch(value)) {
+                        return 'Please enter a valid email address';
                       }
                       return null;
                     },
@@ -230,6 +345,9 @@ class _LoginPageState extends State<LoginPage> {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your password';
                       }
+                      if (_isSignUp && value.length < 6) {
+                        return 'Password must be at least 6 characters';
+                      }
                       return null;
                     },
                   ),
@@ -258,25 +376,53 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ),
                           )
-                        : const Text(
-                            'Sign In',
-                            style: TextStyle(
+                        : Text(
+                            _isSignUp ? 'Sign Up' : 'Sign In',
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
 
-                  // Demo credentials hint
-                  TextButton.icon(
-                    onPressed: _showCredentialsHint,
-                    icon: const Icon(Icons.info_outline, color: Colors.white70),
-                    label: const Text(
-                      'Show demo credentials',
-                      style: TextStyle(color: Colors.white70),
-                    ),
+                  // Toggle between sign in and sign up
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _isSignUp
+                            ? 'Already have an account? '
+                            : 'Don\'t have an account? ',
+                        style: const TextStyle(color: Colors.white70),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _isSignUp = !_isSignUp;
+                            _emailController.clear();
+                            _passwordController.clear();
+                          });
+                        },
+                        child: Text(
+                          _isSignUp ? 'Sign In' : 'Sign Up',
+                          style: const TextStyle(color: Colors.blue),
+                        ),
+                      ),
+                    ],
                   ),
+
+                  if (!_isSignUp) ...[
+                    const SizedBox(height: 8),
+                    // Forgot password
+                    TextButton(
+                      onPressed: _showForgotPasswordDialog,
+                      child: const Text(
+                        'Forgot Password?',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

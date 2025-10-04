@@ -23,12 +23,41 @@ class ProfilePage extends StatelessWidget {
             ),
           ),
           TextButton(
-            onPressed: () {
-              AuthService().logout();
-              Navigator.of(context).pop();
-              Navigator.of(context).pushReplacementNamed('/login');
+            onPressed: () async {
+              try {
+                await AuthService().logout();
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                  // The AuthWrapper will automatically redirect to login page
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                  _showErrorDialog(
+                    context,
+                    'Failed to logout. Please try again.',
+                  );
+                }
+              }
             },
             child: const Text('Logout', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showErrorDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text('Error', style: TextStyle(color: Colors.white)),
+        content: Text(message, style: const TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK', style: TextStyle(color: Colors.blue)),
           ),
         ],
       ),
