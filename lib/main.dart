@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'reorder_wallets_page.dart';
 import 'auth_service.dart';
 import 'login_page.dart';
@@ -9,8 +11,20 @@ import 'services/wallet_service.dart';
 import 'main_navigation.dart';
 import 'pages/wallet_details_page.dart';
 import 'pages/debts_page.dart';
+import 'config/supabase_config.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables
+  await dotenv.load(fileName: ".env");
+
+  // Initialize Supabase
+  await Supabase.initialize(
+    url: SupabaseConfig.supabaseUrl,
+    anonKey: SupabaseConfig.supabaseAnonKey,
+  );
+
   runApp(const ArthaDiamondWalletApp());
 }
 

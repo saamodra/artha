@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/wallet_record.dart';
 import '../services/record_service.dart';
+import '../services/category_service.dart';
 
 class EditRecordPage extends StatefulWidget {
   final WalletRecord record;
@@ -22,6 +23,7 @@ class _EditRecordPageState extends State<EditRecordPage> {
   final _amountController = TextEditingController();
   final _noteController = TextEditingController();
   final _labelController = TextEditingController();
+  final _categoryService = CategoryService();
 
   late RecordType _selectedType;
   String? _selectedCategory;
@@ -32,6 +34,10 @@ class _EditRecordPageState extends State<EditRecordPage> {
   @override
   void initState() {
     super.initState();
+    // Initialize category service
+    _categoryService.initialize();
+    _categoryService.addListener(_onCategoryServiceChanged);
+
     // Initialize with existing record values
     _selectedType = widget.record.type;
     _selectedCategory = widget.record.category;
@@ -43,8 +49,18 @@ class _EditRecordPageState extends State<EditRecordPage> {
     _labelController.text = widget.record.label ?? '';
   }
 
+  void _onCategoryServiceChanged() {
+    if (mounted) {
+      setState(() {
+        // Update category selection when categories are loaded
+        _updateCategoryForType();
+      });
+    }
+  }
+
   @override
   void dispose() {
+    _categoryService.removeListener(_onCategoryServiceChanged);
     _amountController.dispose();
     _noteController.dispose();
     _labelController.dispose();
@@ -52,7 +68,7 @@ class _EditRecordPageState extends State<EditRecordPage> {
   }
 
   void _updateCategoryForType() {
-    final categories = RecordCategories.getCategoriesForType(_selectedType);
+    final categories = _categoryService.getCategoryNamesForType(_selectedType);
     if (categories.isNotEmpty && !categories.contains(_selectedCategory)) {
       _selectedCategory = categories.first;
     }
@@ -336,15 +352,17 @@ class _EditRecordPageState extends State<EditRecordPage> {
                         ),
                         dropdownColor: const Color(0xFF1A1A1A),
                         style: const TextStyle(color: Colors.white),
-                        items:
-                            RecordCategories.getCategoriesForType(_selectedType)
-                                .map(
-                                  (category) => DropdownMenuItem(
-                                    value: category,
-                                    child: Text(category),
-                                  ),
-                                )
-                                .toList(),
+                        items: _categoryService.isLoading
+                            ? []
+                            : _categoryService
+                                  .getCategoryNamesForType(_selectedType)
+                                  .map(
+                                    (category) => DropdownMenuItem(
+                                      value: category,
+                                      child: Text(category),
+                                    ),
+                                  )
+                                  .toList(),
                         onChanged: (value) {
                           setState(() {
                             _selectedCategory = value;

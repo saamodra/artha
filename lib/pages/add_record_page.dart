@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/wallet_record.dart';
 import '../services/record_service.dart';
+import '../services/category_service.dart';
 
 class AddRecordPage extends StatefulWidget {
   final List<Map<String, dynamic>> wallets;
@@ -22,6 +23,7 @@ class _AddRecordPageState extends State<AddRecordPage> {
   final _amountController = TextEditingController();
   final _noteController = TextEditingController();
   final _labelController = TextEditingController();
+  final _categoryService = CategoryService();
 
   RecordType _selectedType = RecordType.expense;
   String? _selectedCategory;
@@ -32,6 +34,10 @@ class _AddRecordPageState extends State<AddRecordPage> {
   @override
   void initState() {
     super.initState();
+    // Initialize category service
+    _categoryService.initialize();
+    _categoryService.addListener(_onCategoryServiceChanged);
+
     // Set default account to pre-selected wallet or first wallet if available
     if (widget.preSelectedWallet != null) {
       // Verify that the pre-selected wallet exists in the wallet list
@@ -59,8 +65,18 @@ class _AddRecordPageState extends State<AddRecordPage> {
     _updateCategoryForType();
   }
 
+  void _onCategoryServiceChanged() {
+    if (mounted) {
+      setState(() {
+        // Update category selection when categories are loaded
+        _updateCategoryForType();
+      });
+    }
+  }
+
   @override
   void dispose() {
+    _categoryService.removeListener(_onCategoryServiceChanged);
     _amountController.dispose();
     _noteController.dispose();
     _labelController.dispose();
@@ -68,7 +84,7 @@ class _AddRecordPageState extends State<AddRecordPage> {
   }
 
   void _updateCategoryForType() {
-    final categories = RecordCategories.getCategoriesForType(_selectedType);
+    final categories = _categoryService.getCategoryNamesForType(_selectedType);
     if (categories.isNotEmpty) {
       _selectedCategory = categories.first;
     }
@@ -298,34 +314,92 @@ class _AddRecordPageState extends State<AddRecordPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        value: _selectedCategory,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                        ),
-                        dropdownColor: const Color(0xFF1A1A1A),
-                        style: const TextStyle(color: Colors.white),
-                        items:
-                            RecordCategories.getCategoriesForType(_selectedType)
-                                .map(
-                                  (category) => DropdownMenuItem(
-                                    value: category,
-                                    child: Text(category),
+                      _categoryService.isLoading
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.white54),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Row(
+                                children: [
+                                  SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.blue,
+                                      ),
+                                    ),
                                   ),
-                                )
-                                .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedCategory = value;
-                          });
-                        },
-                        validator: (value) =>
-                            value == null ? 'Please select a category' : null,
-                      ),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    'Loading categories...',
+                                    style: TextStyle(color: Colors.white70),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : _categoryService.error != null
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.red),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.error,
+                                    color: Colors.red,
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'Error: ${_categoryService.error}',
+                                      style: const TextStyle(color: Colors.red),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : DropdownButtonFormField<String>(
+                              value: _selectedCategory,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                              ),
+                              dropdownColor: const Color(0xFF1A1A1A),
+                              style: const TextStyle(color: Colors.white),
+                              items: _categoryService
+                                  .getCategoryNamesForType(_selectedType)
+                                  .map(
+                                    (category) => DropdownMenuItem(
+                                      value: category,
+                                      child: Text(category),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedCategory = value;
+                                });
+                              },
+                              validator: (value) => value == null
+                                  ? 'Please select a category'
+                                  : null,
+                            ),
 
                       const SizedBox(height: 20),
 
