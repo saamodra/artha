@@ -7,33 +7,52 @@ Artha is a personal finance management application built with Flutter/Dart that 
 
 ## Entities and Attributes
 
-### 1. users
-Represents the authenticated users of the application.
+### 1. auth.users (Managed by Supabase)
+Supabase's built-in authentication table. This is automatically managed by Supabase Auth.
 
 | Attribute | Type | Constraints | Description |
 |-----------|------|-------------|-------------|
-| id | Integer | PK, AUTO_INCREMENT, NOT NULL | Unique identifier for the user |
-| username | String | UNIQUE, NOT NULL | Unique username for login |
-| password | String | NOT NULL | User password (currently hardcoded) |
-| email | String | UNIQUE, NOT NULL | User email address |
-| full_name | String | NULL | User's full name |
-| join_date | String | NOT NULL | Date when user joined |
-| is_authenticated | Boolean | NOT NULL | Current authentication status |
+| id | UUID | PK, NOT NULL | Unique identifier for the user (managed by Supabase) |
+| email | String | UNIQUE, NOT NULL | User email address (managed by Supabase) |
+| encrypted_password | String | NOT NULL | Encrypted password (managed by Supabase) |
+| created_at | TIMESTAMPTZ | NOT NULL | When user signed up (managed by Supabase) |
+| ... | ... | ... | Other Supabase-managed fields |
 
-**Note**: Currently, the application uses hardcoded authentication. In a production system, this would be replaced with a proper user management system.
+**Note**: You should NOT directly modify this table. It's managed by Supabase Auth.
 
 ---
 
-### 2. wallets
+### 2. profiles (User Profile Extension)
+Extends the Supabase auth.users table with additional user information.
+
+| Attribute | Type | Constraints | Description |
+|-----------|------|-------------|-------------|
+| id | UUID | PK, FK, NOT NULL | References auth.users(id) |
+| username | String | UNIQUE, NULL | Optional username for display |
+| full_name | String | NULL | User's full name |
+| avatar_url | String | NULL | Profile picture URL |
+| created_at | TIMESTAMPTZ | NOT NULL | When profile was created |
+| updated_at | TIMESTAMPTZ | NOT NULL | Last profile update |
+
+**Constraints:**
+- PRIMARY KEY (id) also serves as FOREIGN KEY to auth.users(id)
+- ON DELETE CASCADE - When auth user is deleted, profile is also deleted
+- Automatically created via database trigger when user signs up
+
+**Note**: This table is in the public schema and stores additional user data that Supabase Auth doesn't manage.
+
+---
+
+### 3. wallets
 Represents financial accounts (bank account, e-wallet, investment account, cash, etc.).
 
 | Attribute | Type | Constraints | Description |
 |-----------|------|-------------|-------------|
-| id | Integer | PK, AUTO_INCREMENT, NOT NULL | Unique identifier for the wallet |
-| user_id | Integer | FK, NOT NULL | Reference to users.id (owner of the wallet) |
+| id | UUID | PK, NOT NULL | Unique identifier for the wallet |
+| user_id | UUID | FK, NOT NULL | Reference to auth.users(id) - owner of the wallet |
 | name | String | NOT NULL | Display name of the wallet |
 | wallet_type | WalletType (Enum) | NOT NULL | Type of wallet (manualInput, investment) |
-| color | Color (Integer) | NOT NULL | Color code for UI representation |
+| color | Color (BIGINT) | NOT NULL | Color code for UI representation (Flutter 32-bit color) |
 | initial_value | Double | NOT NULL, DEFAULT 0.0 | Initial balance of the wallet |
 | account_number | String | NULL | Account number (for manual input wallets) |
 | account_type | String | NULL | Account type (Bank, E-wallet, Cash, etc.) |
@@ -50,12 +69,12 @@ Represents financial accounts (bank account, e-wallet, investment account, cash,
 
 ---
 
-### 3. categories
+### 4. categories
 Represents transaction categories for wallet records.
 
 | Attribute | Type | Constraints | Description |
 |-----------|------|-------------|-------------|
-| id | Integer | PK, AUTO_INCREMENT, NOT NULL | Unique identifier for the category |
+| id | UUID | PK, NOT NULL | Unique identifier for the category |
 | name | String | NOT NULL, UNIQUE | Name of the category |
 | created_at | DateTime | NOT NULL | Timestamp when category was created |
 
@@ -64,15 +83,15 @@ Represents transaction categories for wallet records.
 
 ---
 
-### 4. labels
+### 5. labels
 Represents custom labels/tags that can be applied to wallet records.
 
 | Attribute | Type | Constraints | Description |
 |-----------|------|-------------|-------------|
-| id | Integer | PK, AUTO_INCREMENT, NOT NULL | Unique identifier for the label |
-| user_id | Integer | FK, NOT NULL | Reference to users.id (owner of the label) |
+| id | UUID | PK, NOT NULL | Unique identifier for the label |
+| user_id | UUID | FK, NOT NULL | Reference to auth.users(id) - owner of the label |
 | name | String | NOT NULL | Name of the label |
-| color | Color (Integer) | NULL | Optional color code for the label |
+| color | Color (BIGINT) | NULL | Optional color code for the label (Flutter 32-bit color) |
 | created_at | DateTime | NOT NULL | Timestamp when label was created |
 
 **Constraints:**
@@ -80,16 +99,16 @@ Represents custom labels/tags that can be applied to wallet records.
 
 ---
 
-### 5. wallet_records
+### 6. wallet_records
 Represents financial transactions (income, expense, or transfer between wallets).
 
 | Attribute | Type | Constraints | Description |
 |-----------|------|-------------|-------------|
-| id | Integer | PK, AUTO_INCREMENT, NOT NULL | Unique identifier for the record |
+| id | UUID | PK, NOT NULL | Unique identifier for the record |
 | record_type | RecordType (Enum) | NOT NULL | Type of transaction (income, expense, transfer) |
-| category_id | Integer | FK, NOT NULL | Reference to categories.id |
-| wallet_id | Integer | FK, NOT NULL | Reference to wallets.id (source wallet) |
-| transfer_to_wallet_id | Integer | FK, NULL | Reference to wallets.id (destination for transfers) |
+| category_id | UUID | FK, NOT NULL | Reference to categories.id |
+| wallet_id | UUID | FK, NOT NULL | Reference to wallets.id (source wallet) |
+| transfer_to_wallet_id | UUID | FK, NULL | Reference to wallets.id (destination for transfers) |
 | amount | Double | NOT NULL, > 0 | Transaction amount |
 | date_time | DateTime | NOT NULL | Timestamp of the transaction |
 | note | String | NULL | Additional notes or description |
@@ -99,18 +118,18 @@ Represents financial transactions (income, expense, or transfer between wallets)
 
 ---
 
-### 6. templates
+### 7. templates
 Represents templates for quickly creating repeated wallet records.
 
 | Attribute | Type | Constraints | Description |
 |-----------|------|-------------|-------------|
-| id | Integer | PK, AUTO_INCREMENT, NOT NULL | Unique identifier for the template |
-| user_id | Integer | FK, NOT NULL | Reference to users.id (owner of the template) |
+| id | UUID | PK, NOT NULL | Unique identifier for the template |
+| user_id | UUID | FK, NOT NULL | Reference to auth.users(id) - owner of the template |
 | name | String | NOT NULL | Name of the template |
 | record_type | RecordType (Enum) | NOT NULL | Type of transaction (income, expense, transfer) |
-| category_id | Integer | FK, NOT NULL | Reference to categories.id |
-| wallet_id | Integer | FK, NULL | Reference to wallets.id (can be changed when using template) |
-| transfer_to_wallet_id | Integer | FK, NULL | Reference to wallets.id (for transfer templates) |
+| category_id | UUID | FK, NOT NULL | Reference to categories.id |
+| wallet_id | UUID | FK, NULL | Reference to wallets.id (can be changed when using template) |
+| transfer_to_wallet_id | UUID | FK, NULL | Reference to wallets.id (for transfer templates) |
 | amount | Double | NOT NULL, > 0 | Default amount for the template |
 | note | String | NULL | Default note for the template |
 | created_at | DateTime | NOT NULL | Timestamp when template was created |
@@ -123,14 +142,14 @@ Represents templates for quickly creating repeated wallet records.
 
 ---
 
-### 7. template_labels
+### 8. template_labels
 Junction table for many-to-many relationship between templates and labels.
 
 | Attribute | Type | Constraints | Description |
 |-----------|------|-------------|-------------|
-| id | Integer | PK, AUTO_INCREMENT, NOT NULL | Unique identifier for the junction record |
-| template_id | Integer | FK, NOT NULL | Reference to templates.id |
-| label_id | Integer | FK, NOT NULL | Reference to labels.id |
+| id | UUID | PK, NOT NULL | Unique identifier for the junction record |
+| template_id | UUID | FK, NOT NULL | Reference to templates.id |
+| label_id | UUID | FK, NOT NULL | Reference to labels.id |
 | created_at | DateTime | NOT NULL | Timestamp when association was created |
 
 **Constraints:**
@@ -138,14 +157,14 @@ Junction table for many-to-many relationship between templates and labels.
 
 ---
 
-### 8. wallet_record_labels
+### 9. wallet_record_labels
 Junction table for many-to-many relationship between wallet records and labels.
 
 | Attribute | Type | Constraints | Description |
 |-----------|------|-------------|-------------|
-| id | Integer | PK, AUTO_INCREMENT, NOT NULL | Unique identifier for the junction record |
-| wallet_record_id | Integer | FK, NOT NULL | Reference to wallet_records.id |
-| label_id | Integer | FK, NOT NULL | Reference to labels.id |
+| id | UUID | PK, NOT NULL | Unique identifier for the junction record |
+| wallet_record_id | UUID | FK, NOT NULL | Reference to wallet_records.id |
+| label_id | UUID | FK, NOT NULL | Reference to labels.id |
 | created_at | DateTime | NOT NULL | Timestamp when association was created |
 
 **Constraints:**
@@ -153,17 +172,17 @@ Junction table for many-to-many relationship between wallet records and labels.
 
 ---
 
-### 9. debts
+### 10. debts
 Represents money lent to others or owed by the user.
 
 | Attribute | Type | Constraints | Description |
 |-----------|------|-------------|-------------|
-| id | Integer | PK, AUTO_INCREMENT, NOT NULL | Unique identifier for the debt |
-| user_id | Integer | FK, NOT NULL | Reference to users.id (owner of the debt) |
+| id | UUID | PK, NOT NULL | Unique identifier for the debt |
+| user_id | UUID | FK, NOT NULL | Reference to auth.users(id) - owner of the debt |
 | debt_type | DebtType (Enum) | NOT NULL | Type of debt (iLent, iOwe) |
 | name | String | NOT NULL | Name of the person/entity |
 | description | String | NOT NULL | Description or purpose of the debt |
-| wallet_id | Integer | FK, NOT NULL | Reference to wallets.id |
+| wallet_id | UUID | FK, NOT NULL | Reference to wallets.id |
 | original_amount | Double | NOT NULL, > 0 | Original amount of the debt |
 | current_amount | Double | NOT NULL, >= 0 | Current outstanding amount |
 | date_created | DateTime | NOT NULL | When the debt was created |
@@ -180,15 +199,15 @@ Represents money lent to others or owed by the user.
 
 ---
 
-### 10. debt_records
+### 11. debt_records
 Represents actions performed on a debt (repayment or increase).
 
 | Attribute | Type | Constraints | Description |
 |-----------|------|-------------|-------------|
-| id | Integer | PK, AUTO_INCREMENT, NOT NULL | Unique identifier for the debt record |
-| debt_id | Integer | FK, NOT NULL | Reference to debts.id |
+| id | UUID | PK, NOT NULL | Unique identifier for the debt record |
+| debt_id | UUID | FK, NOT NULL | Reference to debts.id |
 | action | DebtAction (Enum) | NOT NULL | Type of action (repay, increaseDebt) |
-| wallet_id | Integer | FK, NOT NULL | Reference to wallets.id |
+| wallet_id | UUID | FK, NOT NULL | Reference to wallets.id |
 | amount | Double | NOT NULL, > 0 | Amount of the action |
 | date_time | DateTime | NOT NULL | When the action occurred |
 | note | String | NULL | Additional notes |
@@ -212,10 +231,11 @@ Represents actions performed on a debt (repayment or increase).
 
 ```mermaid
 erDiagram
-    users ||--o{ wallets : "owns"
-    users ||--o{ debts : "has"
-    users ||--o{ labels : "creates"
-    users ||--o{ templates : "creates"
+    auth_users ||--|| profiles : "extends"
+    auth_users ||--o{ wallets : "owns"
+    auth_users ||--o{ debts : "has"
+    auth_users ||--o{ labels : "creates"
+    auth_users ||--o{ templates : "creates"
     wallets ||--o{ wallet_records : "has transactions"
     wallets ||--o{ templates : "default wallet"
     wallets ||--o{ debts : "associated with"
@@ -229,101 +249,107 @@ erDiagram
     templates ||--o{ template_labels : "has"
     labels ||--o{ template_labels : "tagged in"
 
-    users {
-        int id PK
-        string username UK
-        string password
+    auth_users {
+        uuid id PK
         string email UK
+        string encrypted_password
+        timestamptz created_at
+    }
+
+    profiles {
+        uuid id PK_FK
+        string username UK
         string full_name
-        string join_date
-        boolean is_authenticated
+        string avatar_url
+        timestamptz created_at
+        timestamptz updated_at
     }
 
     wallets {
-        int id PK
-        int user_id FK
+        uuid id PK
+        uuid user_id FK
         string name
         enum wallet_type
-        int color
+        bigint color
         double initial_value
         string account_number
         string account_type
         enum asset_type
-        datetime created_at
+        timestamptz created_at
     }
 
     categories {
-        int id PK
+        uuid id PK
         string name
-        datetime created_at
+        timestamptz created_at
     }
 
     labels {
-        int id PK
-        int user_id FK
+        uuid id PK
+        uuid user_id FK
         string name
-        int color
-        datetime created_at
+        bigint color
+        timestamptz created_at
     }
 
     wallet_records {
-        int id PK
+        uuid id PK
         enum record_type
-        int category_id FK
-        int wallet_id FK
-        int transfer_to_wallet_id FK
+        uuid category_id FK
+        uuid wallet_id FK
+        uuid transfer_to_wallet_id FK
         double amount
-        datetime date_time
+        timestamptz date_time
         string note
     }
 
     templates {
-        int id PK
-        int user_id FK
+        uuid id PK
+        uuid user_id FK
         string name
         enum record_type
-        int category_id FK
-        int wallet_id FK
-        int transfer_to_wallet_id FK
+        uuid category_id FK
+        uuid wallet_id FK
+        uuid transfer_to_wallet_id FK
         double amount
         string note
-        datetime created_at
+        timestamptz created_at
     }
 
     template_labels {
-        int id PK
-        int template_id FK
-        int label_id FK
-        datetime created_at
+        uuid id PK
+        uuid template_id FK
+        uuid label_id FK
+        timestamptz created_at
     }
 
     wallet_record_labels {
-        int id PK
-        int wallet_record_id FK
-        int label_id FK
-        datetime created_at
+        uuid id PK
+        uuid wallet_record_id FK
+        uuid label_id FK
+        timestamptz created_at
     }
 
     debts {
-        int id PK
-        int user_id FK
+        uuid id PK
+        uuid user_id FK
         enum debt_type
         string name
         string description
-        int wallet_id FK
+        uuid wallet_id FK
         double original_amount
         double current_amount
-        datetime date_created
-        datetime due_date
+        timestamptz date_created
+        timestamptz due_date
     }
 
     debt_records {
-        int id PK
-        int debt_id FK
+        uuid id PK
+        uuid debt_id FK
         enum debt_action
-        int wallet_id FK
+        uuid wallet_id FK
         double amount
-        datetime date_time
+        timestamptz date_time
         string note
     }
 ```
@@ -539,51 +565,57 @@ end note
 
 ### Relationship Details
 
-#### 1. users → wallets (1:N)
+#### 1. auth.users → profiles (1:1)
+- **Type**: One-to-One
+- **Description**: Each authenticated user has exactly one profile with extended information
+- **Cardinality**: 1 auth.users : 1 profiles
+- **Foreign Key**: profiles.id → auth.users(id)
+- **Cascade**: When an auth user is deleted, the profile is also deleted (ON DELETE CASCADE)
+- **Note**: Profile is automatically created via database trigger when user signs up
+
+#### 2. auth.users → wallets (1:N)
 - **Type**: One-to-Many
 - **Description**: A user can own multiple wallets
-- **Cardinality**: 1 users : 0..* wallets
-- **Foreign Key**: wallets.user_id → users.id
-- **Cascade**: When a user is deleted, all associated wallets are also deleted
-- **Note**: Currently not explicitly stored in code, but should be implemented for multi-user support
+- **Cardinality**: 1 auth.users : 0..* wallets
+- **Foreign Key**: wallets.user_id → auth.users(id)
+- **Cascade**: When a user is deleted, all associated wallets are also deleted (ON DELETE CASCADE)
 
-#### 2. users → debts (1:N)
+#### 3. auth.users → debts (1:N)
 - **Type**: One-to-Many
 - **Description**: A user can have multiple debts
-- **Cardinality**: 1 users : 0..* debts
-- **Foreign Key**: debts.user_id → users.id
-- **Cascade**: When a user is deleted, all associated debts are also deleted
-- **Note**: Currently not explicitly stored in code, but should be implemented for multi-user support
+- **Cardinality**: 1 auth.users : 0..* debts
+- **Foreign Key**: debts.user_id → auth.users(id)
+- **Cascade**: When a user is deleted, all associated debts are also deleted (ON DELETE CASCADE)
 
-#### 3. users → labels (1:N)
+#### 4. auth.users → labels (1:N)
 - **Type**: One-to-Many
 - **Description**: A user can create multiple labels
-- **Cardinality**: 1 users : 0..* labels
-- **Foreign Key**: labels.user_id → users.id
-- **Cascade**: When a user is deleted, all associated labels are also deleted
+- **Cardinality**: 1 auth.users : 0..* labels
+- **Foreign Key**: labels.user_id → auth.users(id)
+- **Cascade**: When a user is deleted, all associated labels are also deleted (ON DELETE CASCADE)
 
-#### 4. users → templates (1:N)
+#### 5. auth.users → templates (1:N)
 - **Type**: One-to-Many
 - **Description**: A user can create multiple transaction templates
-- **Cardinality**: 1 users : 0..* templates
-- **Foreign Key**: templates.user_id → users.id
-- **Cascade**: When a user is deleted, all associated templates are also deleted
+- **Cardinality**: 1 auth.users : 0..* templates
+- **Foreign Key**: templates.user_id → auth.users(id)
+- **Cascade**: When a user is deleted, all associated templates are also deleted (ON DELETE CASCADE)
 
-#### 5. categories → wallet_records (1:N)
+#### 6. categories → wallet_records (1:N)
 - **Type**: One-to-Many
 - **Description**: A category can be used by multiple wallet records
 - **Cardinality**: 1 categories : 0..* wallet_records
 - **Foreign Key**: wallet_records.category_id → categories.id
-- **Cascade**: When a category is deleted, prevent deletion if wallet_records exist (RESTRICT)
+- **Cascade**: When a category is deleted, prevent deletion if wallet_records exist (ON DELETE RESTRICT)
 
-#### 6. categories → templates (1:N)
+#### 7. categories → templates (1:N)
 - **Type**: One-to-Many
 - **Description**: A category can be used by multiple templates
 - **Cardinality**: 1 categories : 0..* templates
 - **Foreign Key**: templates.category_id → categories.id
-- **Cascade**: When a category is deleted, prevent deletion if templates exist (RESTRICT)
+- **Cascade**: When a category is deleted, prevent deletion if templates exist (ON DELETE RESTRICT)
 
-#### 7. wallets → wallet_records (1:N)
+#### 8. wallets → wallet_records (1:N)
 - **Type**: One-to-Many
 - **Description**: A wallet can have multiple transaction records
 - **Cardinality**: 1 wallets : 0..* wallet_records
@@ -591,44 +623,43 @@ end note
 - **Note**: wallet_records.transfer_to_wallet_id also references wallets.id for transfer transactions
 - **Cascade**: When a wallet is deleted, all associated wallet_records should be handled appropriately
 
-#### 8. wallets → templates (1:N)
+#### 9. wallets → templates (1:N)
 - **Type**: One-to-Many
 - **Description**: A wallet can be used as default in multiple templates
 - **Cardinality**: 1 wallets : 0..* templates
 - **Foreign Key**: templates.wallet_id → wallets.id (nullable)
-- **Cascade**: When a wallet is deleted, set wallet_id to NULL in templates (SET NULL)
+- **Cascade**: When a wallet is deleted, set wallet_id to NULL in templates (ON DELETE SET NULL)
 - **Note**: Templates can have optional default wallet
 
-#### 9. wallets → debts (1:N)
+#### 10. wallets → debts (1:N)
 - **Type**: One-to-Many
 - **Description**: A wallet can be associated with multiple debts
 - **Cardinality**: 1 wallets : 0..* debts
 - **Foreign Key**: debts.wallet_id → wallets.id
-- **Cascade**: When a wallet is deleted, associated debts should be handled (either prevent deletion or cascade)
+- **Cascade**: When a wallet is deleted, associated debts are also deleted (ON DELETE CASCADE)
 
-#### 10. wallets → debt_records (1:N)
+#### 11. wallets → debt_records (1:N)
 - **Type**: One-to-Many
 - **Description**: A wallet can be used in multiple debt record transactions
 - **Cardinality**: 1 wallets : 0..* debt_records
 - **Foreign Key**: debt_records.wallet_id → wallets.id
-- **Cascade**: When a wallet is deleted, associated debt_records should be handled appropriately
+- **Cascade**: When a wallet is deleted, associated debt_records are also deleted (ON DELETE CASCADE)
 
-#### 11. debts → debt_records (1:N)
+#### 12. debts → debt_records (1:N)
 - **Type**: One-to-Many
 - **Description**: A debt can have multiple action records
 - **Cardinality**: 1 debts : 0..* debt_records
 - **Foreign Key**: debt_records.debt_id → debts.id
-- **Cascade**: When a debt is deleted, all associated debt_records are also deleted
+- **Cascade**: When a debt is deleted, all associated debt_records are also deleted (ON DELETE CASCADE)
 
-#### 12. debt_records → wallet_records (1:1)
+#### 13. debt_records → wallet_records (1:1)
 - **Type**: One-to-One
 - **Description**: Each debt record automatically creates a corresponding wallet record
 - **Cardinality**: 1 debt_records : 1 wallet_records
-- **Foreign Key**: wallet_records.id = 'debt_' + debt_records.id
 - **Business Logic**: The wallet record type and category depend on the debt type and action
-- **Cascade**: When a debt_record is deleted, the corresponding wallet_record is also deleted
+- **Note**: This relationship is managed at the application level (service layer), not via foreign key
 
-#### 13. wallet_records ← wallet_record_labels → labels (M:N)
+#### 14. wallet_records ← wallet_record_labels → labels (M:N)
 - **Type**: Many-to-Many
 - **Description**: A wallet record can have multiple labels, and a label can be applied to multiple wallet records
 - **Cardinality**: * wallet_records : * labels
@@ -636,9 +667,9 @@ end note
 - **Foreign Keys**:
   - wallet_record_labels.wallet_record_id → wallet_records.id
   - wallet_record_labels.label_id → labels.id
-- **Cascade**: When a wallet_record or label is deleted, the corresponding junction records are also deleted
+- **Cascade**: When a wallet_record or label is deleted, the corresponding junction records are also deleted (ON DELETE CASCADE)
 
-#### 14. templates ← template_labels → labels (M:N)
+#### 15. templates ← template_labels → labels (M:N)
 - **Type**: Many-to-Many
 - **Description**: A template can have multiple labels, and a label can be applied to multiple templates
 - **Cardinality**: * templates : * labels
@@ -646,147 +677,149 @@ end note
 - **Foreign Keys**:
   - template_labels.template_id → templates.id
   - template_labels.label_id → labels.id
-- **Cascade**: When a template or label is deleted, the corresponding junction records are also deleted
+- **Cascade**: When a template or label is deleted, the corresponding junction records are also deleted (ON DELETE CASCADE)
 
 ---
 
 ## Database Schema (Normalized)
 
-### Suggested SQL Schema for Future Implementation
+### Supabase-Ready SQL Schema
 
 ```sql
--- Users table
-CREATE TABLE users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(255) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE,
+-- Note: auth.users table is managed by Supabase Auth
+-- No need to create it manually
+
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Profiles table (extends auth.users)
+CREATE TABLE profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    username VARCHAR(255) UNIQUE,
     full_name VARCHAR(255),
-    join_date DATE NOT NULL,
-    is_authenticated BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    avatar_url TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Create trigger to automatically create profile on signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO public.profiles (id, created_at, updated_at)
+    VALUES (NEW.id, NOW(), NOW());
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+    AFTER INSERT ON auth.users
+    FOR EACH ROW
+    EXECUTE FUNCTION public.handle_new_user();
 
 -- Wallets table
 CREATE TABLE wallets (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     wallet_type VARCHAR(50) NOT NULL, -- manualInput, investment
-    color INTEGER NOT NULL,
+    color BIGINT NOT NULL, -- Flutter 32-bit color (0 to 4,294,967,295)
     initial_value DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
     account_number VARCHAR(255),
     account_type VARCHAR(100),
     asset_type VARCHAR(50), -- stocks, crypto
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (user_id, name)
 );
 
 -- Categories table
 CREATE TABLE categories (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL UNIQUE,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Labels table
 CREATE TABLE labels (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
-    color INTEGER,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    color BIGINT, -- Flutter 32-bit color (0 to 4,294,967,295)
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (user_id, name)
 );
 
 -- Templates table
 CREATE TABLE templates (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     record_type VARCHAR(50) NOT NULL, -- income, expense, transfer
-    category_id INT NOT NULL,
-    wallet_id INT,
-    transfer_to_wallet_id INT,
-    amount DECIMAL(15, 2) NOT NULL,
+    category_id UUID NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
+    wallet_id UUID REFERENCES wallets(id) ON DELETE SET NULL,
+    transfer_to_wallet_id UUID REFERENCES wallets(id) ON DELETE SET NULL,
+    amount DECIMAL(15, 2) NOT NULL CHECK (amount > 0),
     note TEXT,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT,
-    FOREIGN KEY (wallet_id) REFERENCES wallets(id) ON DELETE SET NULL,
-    FOREIGN KEY (transfer_to_wallet_id) REFERENCES wallets(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (user_id, name)
 );
 
 -- Template labels junction table (many-to-many)
 CREATE TABLE template_labels (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    template_id INT NOT NULL,
-    label_id INT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (template_id) REFERENCES templates(id) ON DELETE CASCADE,
-    FOREIGN KEY (label_id) REFERENCES labels(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    template_id UUID NOT NULL REFERENCES templates(id) ON DELETE CASCADE,
+    label_id UUID NOT NULL REFERENCES labels(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (template_id, label_id)
 );
 
 -- Wallet records table
 CREATE TABLE wallet_records (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     record_type VARCHAR(50) NOT NULL, -- income, expense, transfer
-    category_id INT NOT NULL,
-    wallet_id INT NOT NULL,
-    transfer_to_wallet_id INT,
-    amount DECIMAL(15, 2) NOT NULL,
-    date_time TIMESTAMP NOT NULL,
+    category_id UUID NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
+    wallet_id UUID NOT NULL REFERENCES wallets(id) ON DELETE CASCADE,
+    transfer_to_wallet_id UUID REFERENCES wallets(id) ON DELETE SET NULL,
+    amount DECIMAL(15, 2) NOT NULL CHECK (amount > 0),
+    date_time TIMESTAMPTZ NOT NULL,
     note TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT,
-    FOREIGN KEY (wallet_id) REFERENCES wallets(id) ON DELETE CASCADE,
-    FOREIGN KEY (transfer_to_wallet_id) REFERENCES wallets(id) ON DELETE SET NULL
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Wallet record labels junction table (many-to-many)
 CREATE TABLE wallet_record_labels (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    wallet_record_id INT NOT NULL,
-    label_id INT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (wallet_record_id) REFERENCES wallet_records(id) ON DELETE CASCADE,
-    FOREIGN KEY (label_id) REFERENCES labels(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    wallet_record_id UUID NOT NULL REFERENCES wallet_records(id) ON DELETE CASCADE,
+    label_id UUID NOT NULL REFERENCES labels(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (wallet_record_id, label_id)
 );
 
 -- Debts table
 CREATE TABLE debts (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     debt_type VARCHAR(50) NOT NULL, -- iLent, iOwe
     name VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
-    wallet_id INT NOT NULL,
-    original_amount DECIMAL(15, 2) NOT NULL,
-    current_amount DECIMAL(15, 2) NOT NULL,
-    date_created TIMESTAMP NOT NULL,
-    due_date TIMESTAMP NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (wallet_id) REFERENCES wallets(id) ON DELETE CASCADE
+    wallet_id UUID NOT NULL REFERENCES wallets(id) ON DELETE CASCADE,
+    original_amount DECIMAL(15, 2) NOT NULL CHECK (original_amount > 0),
+    current_amount DECIMAL(15, 2) NOT NULL CHECK (current_amount >= 0),
+    date_created TIMESTAMPTZ NOT NULL,
+    due_date TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Debt records table
 CREATE TABLE debt_records (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    debt_id INT NOT NULL,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    debt_id UUID NOT NULL REFERENCES debts(id) ON DELETE CASCADE,
     action VARCHAR(50) NOT NULL, -- repay, increaseDebt
-    wallet_id INT NOT NULL,
-    amount DECIMAL(15, 2) NOT NULL,
-    date_time TIMESTAMP NOT NULL,
+    wallet_id UUID NOT NULL REFERENCES wallets(id) ON DELETE CASCADE,
+    amount DECIMAL(15, 2) NOT NULL CHECK (amount > 0),
+    date_time TIMESTAMPTZ NOT NULL,
     note TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (debt_id) REFERENCES debts(id) ON DELETE CASCADE,
-    FOREIGN KEY (wallet_id) REFERENCES wallets(id) ON DELETE CASCADE
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Indexes for performance

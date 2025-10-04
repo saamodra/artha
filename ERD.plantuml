@@ -3,110 +3,121 @@
 !define PRIMARY_KEY(x) <b><color:#b8861b><&key></color> x</b>
 !define FOREIGN_KEY(x) <color:#aaaaaa><&key></color> x
 !define UNIQUE(x) <color:#222222><u>x</u></color>
+skinparam linetype ortho
 
-entity "users" as users {
-  PRIMARY_KEY(id) : INT
-  UNIQUE(username) : VARCHAR(255)
-  password : VARCHAR(255)
+entity "auth.users" as auth_users {
+  PRIMARY_KEY(id) : UUID
   UNIQUE(email) : VARCHAR(255)
+  encrypted_password : VARCHAR(255)
+  created_at : TIMESTAMPTZ
+  --
+  <i>Managed by Supabase Auth</i>
+}
+
+entity "profiles" as profiles {
+  PRIMARY_KEY(id) : UUID
+  FOREIGN_KEY(id) : UUID
+  UNIQUE(username) : VARCHAR(255)
   full_name : VARCHAR(255)
-  join_date : DATE
-  is_authenticated : BOOLEAN
+  avatar_url : TEXT
+  created_at : TIMESTAMPTZ
+  updated_at : TIMESTAMPTZ
 }
 
 entity "wallets" as wallets {
-  PRIMARY_KEY(id) : INT
-  FOREIGN_KEY(user_id) : INT
+  PRIMARY_KEY(id) : UUID
+  FOREIGN_KEY(user_id) : UUID
   name : VARCHAR(255)
   wallet_type : VARCHAR(50)
-  color : INTEGER
+  color : BIGINT
   initial_value : DECIMAL(15,2)
   account_number : VARCHAR(255)
   account_type : VARCHAR(100)
   asset_type : VARCHAR(50)
-  created_at : TIMESTAMP
+  created_at : TIMESTAMPTZ
 }
 
 entity "categories" as categories {
-  PRIMARY_KEY(id) : INT
+  PRIMARY_KEY(id) : UUID
   name : VARCHAR(255)
-  created_at : TIMESTAMP
+  created_at : TIMESTAMPTZ
 }
 
 entity "labels" as labels {
-  PRIMARY_KEY(id) : INT
-  FOREIGN_KEY(user_id) : INT
+  PRIMARY_KEY(id) : UUID
+  FOREIGN_KEY(user_id) : UUID
   name : VARCHAR(255)
-  color : INTEGER
-  created_at : TIMESTAMP
+  color : BIGINT
+  created_at : TIMESTAMPTZ
 }
 
 entity "wallet_records" as wallet_records {
-  PRIMARY_KEY(id) : INT
+  PRIMARY_KEY(id) : UUID
   record_type : VARCHAR(50)
-  FOREIGN_KEY(category_id) : INT
-  FOREIGN_KEY(wallet_id) : INT
-  FOREIGN_KEY(transfer_to_wallet_id) : INT
+  FOREIGN_KEY(category_id) : UUID
+  FOREIGN_KEY(wallet_id) : UUID
+  FOREIGN_KEY(transfer_to_wallet_id) : UUID
   amount : DECIMAL(15,2)
-  date_time : TIMESTAMP
+  date_time : TIMESTAMPTZ
   note : TEXT
 }
 
 entity "templates" as templates {
-  PRIMARY_KEY(id) : INT
-  FOREIGN_KEY(user_id) : INT
+  PRIMARY_KEY(id) : UUID
+  FOREIGN_KEY(user_id) : UUID
   name : VARCHAR(255)
   record_type : VARCHAR(50)
-  FOREIGN_KEY(category_id) : INT
-  FOREIGN_KEY(wallet_id) : INT
-  FOREIGN_KEY(transfer_to_wallet_id) : INT
+  FOREIGN_KEY(category_id) : UUID
+  FOREIGN_KEY(wallet_id) : UUID
+  FOREIGN_KEY(transfer_to_wallet_id) : UUID
   amount : DECIMAL(15,2)
   note : TEXT
-  created_at : TIMESTAMP
+  created_at : TIMESTAMPTZ
 }
 
 entity "template_labels" as template_labels {
-  PRIMARY_KEY(id) : INT
-  FOREIGN_KEY(template_id) : INT
-  FOREIGN_KEY(label_id) : INT
-  created_at : TIMESTAMP
+  PRIMARY_KEY(id) : UUID
+  FOREIGN_KEY(template_id) : UUID
+  FOREIGN_KEY(label_id) : UUID
+  created_at : TIMESTAMPTZ
 }
 
 entity "wallet_record_labels" as wallet_record_labels {
-  PRIMARY_KEY(id) : INT
-  FOREIGN_KEY(wallet_record_id) : INT
-  FOREIGN_KEY(label_id) : INT
-  created_at : TIMESTAMP
+  PRIMARY_KEY(id) : UUID
+  FOREIGN_KEY(wallet_record_id) : UUID
+  FOREIGN_KEY(label_id) : UUID
+  created_at : TIMESTAMPTZ
 }
 
 entity "debts" as debts {
-  PRIMARY_KEY(id) : INT
-  FOREIGN_KEY(user_id) : INT
+  PRIMARY_KEY(id) : UUID
+  FOREIGN_KEY(user_id) : UUID
   debt_type : VARCHAR(50)
   name : VARCHAR(255)
   description : TEXT
-  FOREIGN_KEY(wallet_id) : INT
+  FOREIGN_KEY(wallet_id) : UUID
   original_amount : DECIMAL(15,2)
   current_amount : DECIMAL(15,2)
-  date_created : TIMESTAMP
-  due_date : TIMESTAMP
+  date_created : TIMESTAMPTZ
+  due_date : TIMESTAMPTZ
 }
 
 entity "debt_records" as debt_records {
-  PRIMARY_KEY(id) : INT
-  FOREIGN_KEY(debt_id) : INT
+  PRIMARY_KEY(id) : UUID
+  FOREIGN_KEY(debt_id) : UUID
   action : VARCHAR(50)
-  FOREIGN_KEY(wallet_id) : INT
+  FOREIGN_KEY(wallet_id) : UUID
   amount : DECIMAL(15,2)
-  date_time : TIMESTAMP
+  date_time : TIMESTAMPTZ
   note : TEXT
 }
 
 ' Relationships
-users ||--o{ wallets : "owns"
-users ||--o{ debts : "has"
-users ||--o{ labels : "creates"
-users ||--o{ templates : "creates"
+auth_users ||--|| profiles : "extends"
+auth_users ||--o{ wallets : "owns"
+auth_users ||--o{ debts : "has"
+auth_users ||--o{ labels : "creates"
+auth_users ||--o{ templates : "creates"
 wallets ||--o{ wallet_records : "has transactions"
 wallets ||--o{ templates : "default wallet"
 wallets ||--o{ debts : "associated with"
@@ -121,6 +132,20 @@ templates ||--o{ template_labels : "has"
 labels ||--o{ template_labels : "tagged in"
 
 ' Notes
+note right of auth_users
+  **Supabase Managed Table**
+  - Authentication handled by Supabase
+  - Do NOT modify this table directly
+  - Use Supabase Auth API
+end note
+
+note right of profiles
+  **User Profile Extension**
+  - Extends auth.users with custom data
+  - Auto-created via trigger on signup
+  - Stores additional user information
+end note
+
 note right of wallets
   **Enums:**
   - wallet_type: manualInput, investment
