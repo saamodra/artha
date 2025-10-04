@@ -5,8 +5,13 @@ import '../services/record_service.dart';
 
 class AddRecordPage extends StatefulWidget {
   final List<Map<String, dynamic>> wallets;
+  final String? preSelectedWallet;
 
-  const AddRecordPage({super.key, required this.wallets});
+  const AddRecordPage({
+    super.key,
+    required this.wallets,
+    this.preSelectedWallet,
+  });
 
   @override
   State<AddRecordPage> createState() => _AddRecordPageState();
@@ -27,8 +32,27 @@ class _AddRecordPageState extends State<AddRecordPage> {
   @override
   void initState() {
     super.initState();
-    // Set default account to first wallet if available
-    if (widget.wallets.isNotEmpty) {
+    // Set default account to pre-selected wallet or first wallet if available
+    if (widget.preSelectedWallet != null) {
+      // Verify that the pre-selected wallet exists in the wallet list
+      final walletExists = widget.wallets.any(
+        (wallet) => wallet['name'] as String == widget.preSelectedWallet,
+      );
+      if (walletExists) {
+        _selectedAccount = widget.preSelectedWallet;
+      } else {
+        // Debug: Log when pre-selected wallet is not found
+        debugPrint(
+          'AddRecordPage: Pre-selected wallet "${widget.preSelectedWallet}" not found in wallet list',
+        );
+        debugPrint(
+          'Available wallets: ${widget.wallets.map((w) => w['name']).join(', ')}',
+        );
+        if (widget.wallets.isNotEmpty) {
+          _selectedAccount = widget.wallets.first['name'] as String;
+        }
+      }
+    } else if (widget.wallets.isNotEmpty) {
       _selectedAccount = widget.wallets.first['name'] as String;
     }
     // Set default category based on type

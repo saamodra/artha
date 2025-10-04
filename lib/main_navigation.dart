@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'main.dart';
+import 'services/wallet_service.dart';
 import 'pages/wallet_list_page.dart';
 import 'pages/records_filter_page.dart';
 import 'pages/add_record_page.dart';
@@ -16,6 +17,7 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _selectedIndex = 0;
   late PageController _pageController;
+  final WalletService walletService = WalletService();
 
   @override
   void initState() {
@@ -43,7 +45,8 @@ class _MainNavigationState extends State<MainNavigation> {
   void _showAddRecordPage() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => AddRecordPage(wallets: _getAllAccounts()),
+        builder: (context) =>
+            AddRecordPage(wallets: walletService.getWalletsInLegacyFormat()),
       ),
     );
   }
@@ -176,82 +179,5 @@ class _MainNavigationState extends State<MainNavigation> {
         ),
       ),
     );
-  }
-
-  List<Map<String, dynamic>> _getAllAccounts() {
-    return [
-      {
-        'name': 'Cashfile',
-        'balance': 'IDR 90,000.00',
-        'color': const Color(0xFF8D6E63),
-        'hasIcon': false,
-      },
-      {
-        'name': 'Cash',
-        'balance': 'IDR 349,000.00',
-        'color': const Color(0xFF8D6E63),
-        'hasIcon': false,
-      },
-      {
-        'name': 'BRI',
-        'balance': 'IDR 262,337.00',
-        'color': Colors.blue,
-        'hasIcon': false,
-      },
-      {
-        'name': 'Ajaib Stocks',
-        'balance': 'IDR 41,693,789.00',
-        'color': Colors.blue,
-        'hasIcon': true,
-      },
-      {
-        'name': 'Ajaib Kripto',
-        'balance': 'IDR 11,485,644.00',
-        'color': Colors.purple,
-        'hasIcon': false,
-      },
-      {
-        'name': 'Bibit',
-        'balance': 'IDR 236,371,256.00',
-        'color': Colors.green,
-        'hasIcon': false,
-      },
-      {
-        'name': 'SeaBank',
-        'balance': 'IDR 4,263,340.00',
-        'color': Colors.orange,
-        'hasIcon': false,
-      },
-      {
-        'name': 'BCA',
-        'balance': 'IDR 16,237,019.00',
-        'color': Colors.blue,
-        'hasIcon': false,
-      },
-      {
-        'name': 'Bibit Saham',
-        'balance': 'IDR 16,065,682.00',
-        'color': Colors.grey,
-        'hasIcon': true,
-      },
-      {
-        'name': 'Bibit Saham 2',
-        'balance': 'IDR 92,196,754.00',
-        'color': Colors.orange,
-        'hasIcon': true,
-      },
-      {
-        'name': 'Shopeepay',
-        'balance': 'IDR 372,623.00',
-        'color': Colors.orange,
-        'hasIcon': false,
-      },
-      {
-        'name': 'Permata',
-        'balance': 'IDR 6,570.00',
-        'color': Colors.green,
-        'hasIcon': false,
-      },
-    ];
   }
 }

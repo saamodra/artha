@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../models/wallet_record.dart';
 import '../services/record_service.dart';
+import '../services/wallet_service.dart';
 import '../widgets/record_item.dart';
 import '../widgets/filterable_records_page.dart';
 import 'add_record_page.dart';
@@ -17,6 +18,7 @@ class WalletDetailsPage extends StatefulWidget {
 
 class _WalletDetailsPageState extends State<WalletDetailsPage> {
   final RecordService recordService = RecordService();
+  final WalletService walletService = WalletService();
   String selectedPeriod = 'This Month';
   final List<String> periods = [
     'This Week',
@@ -500,7 +502,7 @@ class _WalletDetailsPageState extends State<WalletDetailsPage> {
                     .map(
                       (record) => RecordItem(
                         record: record,
-                        wallets: _getAllAccounts(),
+                        wallets: walletService.getWalletsInLegacyFormat(),
                         recordService: recordService,
                         onRecordChanged: () => setState(() {}),
                         contextWalletName: widget.wallet['name'] as String,
@@ -570,16 +572,20 @@ class _WalletDetailsPageState extends State<WalletDetailsPage> {
           title: '$walletName Records',
           specificWallet: walletName,
           recordService: recordService,
-          wallets: _getAllAccounts(),
+          wallets: walletService.getWalletsInLegacyFormat(),
         ),
       ),
     );
   }
 
   void _navigateToAddRecord() {
+    final walletName = widget.wallet['name'] as String;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => AddRecordPage(wallets: _getAllAccounts()),
+        builder: (context) => AddRecordPage(
+          wallets: walletService.getWalletsInLegacyFormat(),
+          preSelectedWallet: walletName,
+        ),
       ),
     );
   }
@@ -677,82 +683,5 @@ class _WalletDetailsPageState extends State<WalletDetailsPage> {
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]},',
         );
-  }
-
-  List<Map<String, dynamic>> _getAllAccounts() {
-    return [
-      {
-        'name': 'Cashfile',
-        'balance': 'IDR 90,000.00',
-        'color': const Color(0xFF8D6E63),
-        'hasIcon': false,
-      },
-      {
-        'name': 'Cash',
-        'balance': 'IDR 349,000.00',
-        'color': const Color(0xFF8D6E63),
-        'hasIcon': false,
-      },
-      {
-        'name': 'BRI',
-        'balance': 'IDR 262,337.00',
-        'color': Colors.blue,
-        'hasIcon': false,
-      },
-      {
-        'name': 'Ajaib Stocks',
-        'balance': 'IDR 41,693,789.00',
-        'color': Colors.blue,
-        'hasIcon': true,
-      },
-      {
-        'name': 'Ajaib Kripto',
-        'balance': 'IDR 11,485,644.00',
-        'color': Colors.purple,
-        'hasIcon': false,
-      },
-      {
-        'name': 'Bibit',
-        'balance': 'IDR 236,371,256.00',
-        'color': Colors.green,
-        'hasIcon': false,
-      },
-      {
-        'name': 'SeaBank',
-        'balance': 'IDR 4,263,340.00',
-        'color': Colors.orange,
-        'hasIcon': false,
-      },
-      {
-        'name': 'BCA',
-        'balance': 'IDR 16,237,019.00',
-        'color': Colors.blue,
-        'hasIcon': false,
-      },
-      {
-        'name': 'Bibit Saham',
-        'balance': 'IDR 16,065,682.00',
-        'color': Colors.grey,
-        'hasIcon': true,
-      },
-      {
-        'name': 'Bibit Saham 2',
-        'balance': 'IDR 92,196,754.00',
-        'color': Colors.orange,
-        'hasIcon': true,
-      },
-      {
-        'name': 'Shopeepay',
-        'balance': 'IDR 372,623.00',
-        'color': Colors.orange,
-        'hasIcon': false,
-      },
-      {
-        'name': 'Permata',
-        'balance': 'IDR 6,570.00',
-        'color': Colors.green,
-        'hasIcon': false,
-      },
-    ];
   }
 }
