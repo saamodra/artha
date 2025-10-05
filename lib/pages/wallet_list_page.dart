@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/record_service.dart';
 import '../services/wallet_service.dart';
+import '../models/wallet.dart';
 import 'wallet_details_page.dart';
 import 'add_wallet_page.dart';
 
@@ -215,19 +216,33 @@ class _WalletListPageState extends State<WalletListPage> {
   Widget _buildAccountsGrid() {
     final accounts = walletService.getWalletsInLegacyFormat();
 
-    return Column(
-      children: [
-        ...accounts.map((account) => _buildAccountRow(account)),
-        _buildAddAccountRow(),
-      ],
+    return AnimatedBuilder(
+      animation: walletService,
+      builder: (context, child) {
+        return ReorderableListView(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          onReorder: (oldIndex, newIndex) {
+            _handleReorder(oldIndex, newIndex);
+          },
+          children: [
+            ...accounts.map(
+              (account) =>
+                  _buildAccountRow(account, key: ValueKey(account['name'])),
+            ),
+            _buildAddAccountRow(key: const ValueKey('add_account')),
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildAccountRow(Map<String, dynamic> account) {
+  Widget _buildAccountRow(Map<String, dynamic> account, {Key? key}) {
     final accountName = account['name'] as String;
     final balance = recordService.getFormattedBalanceForAccount(accountName);
 
     return Container(
+      key: key,
       margin: const EdgeInsets.only(bottom: 8),
       child: Card(
         color: const Color(0xFF1A1A1A),
@@ -259,9 +274,20 @@ class _WalletListPageState extends State<WalletListPage> {
               fontWeight: FontWeight.w500,
             ),
           ),
-          trailing: IconButton(
-            onPressed: () => _showAccountOptions(account),
-            icon: const Icon(Icons.more_vert, color: Colors.white70, size: 20),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.drag_handle, color: Colors.white54, size: 20),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () => _showAccountOptions(account),
+                icon: const Icon(
+                  Icons.more_vert,
+                  color: Colors.white70,
+                  size: 20,
+                ),
+              ),
+            ],
           ),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
@@ -273,8 +299,9 @@ class _WalletListPageState extends State<WalletListPage> {
     );
   }
 
-  Widget _buildAddAccountRow() {
+  Widget _buildAddAccountRow({Key? key}) {
     return Container(
+      key: key,
       margin: const EdgeInsets.only(bottom: 8),
       child: Card(
         color: Colors.transparent,
@@ -427,7 +454,7 @@ class _WalletListPageState extends State<WalletListPage> {
               ),
               onTap: () {
                 Navigator.of(context).pop();
-                _showComingSoonDialog('Reorder Accounts');
+                _showReorderDialog();
               },
             ),
             ListTile(
@@ -447,6 +474,75 @@ class _WalletListPageState extends State<WalletListPage> {
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Close', style: TextStyle(color: Colors.blue)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleReorder(int oldIndex, int newIndex) async {
+    try {
+      // Get current wallets
+      final wallets = List<Wallet>.from(walletService.wallets);
+
+      // Adjust newIndex if it's after the last item (account for "Add Account" row)
+      if (newIndex > wallets.length) {
+        newIndex = wallets.length;
+      }
+
+      // Remove the item from the old position
+      final item = wallets.removeAt(oldIndex);
+
+      // Insert it at the new position
+      wallets.insert(newIndex, item);
+
+      // Update local state immediately to prevent glitch
+      walletService.updateLocalWalletOrder(wallets);
+
+      // Update the display order in Supabase
+      await walletService.updateWalletDisplayOrder(wallets);
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Wallet order updated successfully!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update wallet order: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showReorderDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text(
+          'Reorder Accounts',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'Long press and drag the drag handle (⋮⋮) to reorder your accounts. The new order will be saved automatically.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Got it', style: TextStyle(color: Colors.blue)),
           ),
         ],
       ),

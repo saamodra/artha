@@ -18,6 +18,7 @@ class WalletRepository {
           .from('wallets')
           .select()
           .eq('user_id', _currentUserId!)
+          .order('display_order', ascending: true)
           .order('created_at', ascending: true);
 
       return response.map((json) => Wallet.fromSupabaseJson(json)).toList();
@@ -129,6 +130,52 @@ class WalletRepository {
       return response.isNotEmpty;
     } catch (e) {
       return false;
+    }
+  }
+
+  /// Update display order for multiple wallets
+  Future<void> updateWalletDisplayOrder(
+    List<Map<String, dynamic>> walletOrders,
+  ) async {
+    try {
+      if (_currentUserId == null) {
+        throw Exception('User not authenticated');
+      }
+
+      // Update each wallet's display order
+      for (final walletOrder in walletOrders) {
+        await _supabase
+            .from('wallets')
+            .update({'display_order': walletOrder['display_order']})
+            .eq('id', walletOrder['wallet_id'])
+            .eq('user_id', _currentUserId!);
+      }
+    } catch (e) {
+      throw Exception('Failed to update wallet display order: $e');
+    }
+  }
+
+  /// Get the next display order for a new wallet
+  Future<int> getNextDisplayOrder() async {
+    try {
+      if (_currentUserId == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final response = await _supabase
+          .from('wallets')
+          .select('display_order')
+          .eq('user_id', _currentUserId!)
+          .order('display_order', ascending: false)
+          .limit(1);
+
+      if (response.isEmpty) {
+        return 0;
+      }
+
+      return (response.first['display_order'] as int) + 1;
+    } catch (e) {
+      return 0;
     }
   }
 }

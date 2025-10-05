@@ -9,6 +9,7 @@ class Wallet {
   final String? accountNumber; // For manual input wallets
   final String? accountType; // For manual input wallets (Bank, E-wallet, etc.)
   final AssetType? assetType; // For investment wallets
+  final int displayOrder; // Order for displaying wallets (lower numbers first)
   final DateTime createdAt;
 
   Wallet({
@@ -20,6 +21,7 @@ class Wallet {
     this.accountNumber,
     this.accountType,
     this.assetType,
+    this.displayOrder = 0,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -34,6 +36,7 @@ class Wallet {
       'accountNumber': accountNumber,
       'accountType': accountType,
       'assetType': assetType?.name,
+      'displayOrder': displayOrder,
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -49,6 +52,7 @@ class Wallet {
       'account_number': accountNumber,
       'account_type': accountType,
       'asset_type': assetType?.name,
+      'display_order': displayOrder,
       'created_at': createdAt.toIso8601String(),
     };
   }
@@ -66,6 +70,7 @@ class Wallet {
       assetType: json['assetType'] != null
           ? AssetType.values.firstWhere((e) => e.name == json['assetType'])
           : null,
+      displayOrder: json['displayOrder'] ?? 0,
       createdAt: DateTime.parse(json['createdAt']),
     );
   }
@@ -83,6 +88,7 @@ class Wallet {
       assetType: json['asset_type'] != null
           ? AssetType.values.firstWhere((e) => e.name == json['asset_type'])
           : null,
+      displayOrder: json['display_order'] ?? 0,
       createdAt: DateTime.parse(json['created_at']),
     );
   }
@@ -97,6 +103,7 @@ class Wallet {
     String? accountNumber,
     String? accountType,
     AssetType? assetType,
+    int? displayOrder,
     DateTime? createdAt,
   }) {
     return Wallet(
@@ -108,6 +115,7 @@ class Wallet {
       accountNumber: accountNumber ?? this.accountNumber,
       accountType: accountType ?? this.accountType,
       assetType: assetType ?? this.assetType,
+      displayOrder: displayOrder ?? this.displayOrder,
       createdAt: createdAt ?? this.createdAt,
     );
   }
