@@ -297,7 +297,7 @@ class _AddWalletPageState extends State<AddWalletPage> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value:
+          initialValue:
               _selectedAccountType, // Using deprecated 'value' for compatibility
           style: const TextStyle(color: Colors.white),
           dropdownColor: const Color(0xFF1A1A1A),
@@ -349,7 +349,7 @@ class _AddWalletPageState extends State<AddWalletPage> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<AssetType>(
-          value:
+          initialValue:
               _selectedAssetType, // Using deprecated 'value' for compatibility
           style: const TextStyle(color: Colors.white),
           dropdownColor: const Color(0xFF1A1A1A),

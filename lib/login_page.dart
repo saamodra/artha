@@ -188,11 +188,12 @@ class _LoginPageState extends State<LoginPage> {
           TextButton(
             onPressed: () async {
               if (emailController.text.isNotEmpty) {
+                final navigator = Navigator.of(context);
                 try {
                   final authService = AuthService();
                   await authService.resetPassword(emailController.text.trim());
                   if (mounted) {
-                    Navigator.of(context).pop();
+                    navigator.pop();
                     _showSuccessDialog(
                       'Password reset email sent! Please check your inbox.',
                     );

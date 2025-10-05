@@ -29,7 +29,7 @@ class Wallet {
       'id': id,
       'name': name,
       'type': type.name,
-      'color': color.value, // Note: Using deprecated .value for backward compatibility
+      'color': color.toARGB32(),
       'initialValue': initialValue,
       'accountNumber': accountNumber,
       'accountType': accountType,
@@ -91,22 +91,18 @@ class Wallet {
   }
 
   String _formatCurrency(double amount) {
-    return amount.toStringAsFixed(2).replaceAllMapped(
-      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
+    return amount
+        .toStringAsFixed(2)
+        .replaceAllMapped(
+          RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
   }
 }
 
-enum WalletType {
-  manualInput,
-  investment,
-}
+enum WalletType { manualInput, investment }
 
-enum AssetType {
-  stocks,
-  crypto,
-}
+enum AssetType { stocks, crypto }
 
 // Extension to get display names
 extension WalletTypeExtension on WalletType {

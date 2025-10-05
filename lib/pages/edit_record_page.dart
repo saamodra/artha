@@ -342,7 +342,7 @@ class _EditRecordPageState extends State<EditRecordPage> {
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        value: _selectedCategory,
+                        initialValue: _selectedCategory,
                         decoration: const InputDecoration(
                           border: OutlineInputBorder(),
                           contentPadding: EdgeInsets.symmetric(
@@ -387,7 +387,7 @@ class _EditRecordPageState extends State<EditRecordPage> {
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        value: _selectedAccount,
+                        initialValue: _selectedAccount,
                         decoration: const InputDecoration(
                           border: OutlineInputBorder(),
                           contentPadding: EdgeInsets.symmetric(
@@ -427,7 +427,7 @@ class _EditRecordPageState extends State<EditRecordPage> {
                         ),
                         const SizedBox(height: 12),
                         DropdownButtonFormField<String>(
-                          value: _selectedTransferToAccount,
+                          initialValue: _selectedTransferToAccount,
                           decoration: const InputDecoration(
                             border: OutlineInputBorder(),
                             contentPadding: EdgeInsets.symmetric(
