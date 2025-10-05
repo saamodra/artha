@@ -34,6 +34,7 @@ entity "wallets" as wallets {
   account_number : VARCHAR(255)
   account_type : VARCHAR(100)
   asset_type : VARCHAR(50)
+  display_order : INTEGER
   created_at : TIMESTAMPTZ
 }
 

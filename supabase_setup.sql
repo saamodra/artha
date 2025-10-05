@@ -68,6 +68,7 @@ CREATE TABLE wallets (
     account_number VARCHAR(255),
     account_type VARCHAR(100), -- 'Bank Account', 'E-Wallet', 'Cash', etc.
     asset_type VARCHAR(50), -- 'stocks' or 'crypto' for investment wallets
+    display_order INTEGER NOT NULL DEFAULT 0, -- Order for displaying wallets (lower numbers first)
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (user_id, name)
 );
@@ -162,6 +163,7 @@ CREATE TABLE debt_records (
 -- ============================================
 CREATE INDEX idx_profiles_username ON profiles(username);
 CREATE INDEX idx_wallets_user ON wallets(user_id);
+CREATE INDEX idx_wallets_display_order ON wallets(user_id, display_order); -- For ordered wallet display
 CREATE INDEX idx_wallet_records_wallet ON wallet_records(wallet_id);
 CREATE INDEX idx_wallet_records_date ON wallet_records(date_time DESC);
 CREATE INDEX idx_wallet_records_category ON wallet_records(category_id);

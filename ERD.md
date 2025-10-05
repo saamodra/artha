@@ -57,6 +57,7 @@ Represents financial accounts (bank account, e-wallet, investment account, cash,
 | account_number | String | NULL | Account number (for manual input wallets) |
 | account_type | String | NULL | Account type (Bank, E-wallet, Cash, etc.) |
 | asset_type | AssetType (Enum) | NULL | Asset type for investment wallets (stocks, crypto) |
+| display_order | Integer | NOT NULL, DEFAULT 0 | Order for displaying wallets (lower numbers first) |
 | created_at | DateTime | NOT NULL | Timestamp when wallet was created |
 
 **Constraints:**
@@ -728,6 +729,7 @@ CREATE TABLE wallets (
     account_number VARCHAR(255),
     account_type VARCHAR(100),
     asset_type VARCHAR(50), -- stocks, crypto
+    display_order INTEGER NOT NULL DEFAULT 0, -- Order for displaying wallets (lower numbers first)
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (user_id, name)
 );
@@ -824,6 +826,7 @@ CREATE TABLE debt_records (
 
 -- Indexes for performance
 CREATE INDEX idx_wallets_user ON wallets(user_id);
+CREATE INDEX idx_wallets_display_order ON wallets(user_id, display_order); -- For ordered wallet display
 CREATE INDEX idx_labels_user ON labels(user_id);
 CREATE INDEX idx_templates_user ON templates(user_id);
 CREATE INDEX idx_templates_category ON templates(category_id);

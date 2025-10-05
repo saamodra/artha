@@ -85,18 +85,18 @@ BEGIN
     RAISE NOTICE 'Creating wallets...';
 
     -- BCA Checking Account
-    INSERT INTO wallets (user_id, name, wallet_type, color, initial_value, account_number, account_type)
-    VALUES (sample_user_id, 'BCA Checking', 'manualInput', 4280091135, 5000000.00, '1234567890', 'Bank Account')
+    INSERT INTO wallets (user_id, name, wallet_type, color, initial_value, account_number, account_type, display_order)
+    VALUES (sample_user_id, 'BCA Checking', 'manualInput', 4280091135, 5000000.00, '1234567890', 'Bank Account', 1)
     RETURNING id INTO wallet_bca;
 
     -- Cash Wallet
-    INSERT INTO wallets (user_id, name, wallet_type, color, initial_value, account_type)
-    VALUES (sample_user_id, 'Cash', 'manualInput', 4287137928, 500000.00, 'Cash')
+    INSERT INTO wallets (user_id, name, wallet_type, color, initial_value, account_type, display_order)
+    VALUES (sample_user_id, 'Cash', 'manualInput', 4287137928, 500000.00, 'Cash', 2)
     RETURNING id INTO wallet_cash;
 
     -- GoPay E-Wallet
-    INSERT INTO wallets (user_id, name, wallet_type, color, initial_value, account_type)
-    VALUES (sample_user_id, 'GoPay', 'manualInput', 4294198070, 250000.00, 'E-Wallet')
+    INSERT INTO wallets (user_id, name, wallet_type, color, initial_value, account_type, display_order)
+    VALUES (sample_user_id, 'GoPay', 'manualInput', 4294198070, 250000.00, 'E-Wallet', 3)
     RETURNING id INTO wallet_gopay;
 
     RAISE NOTICE '✓ Created 3 wallets';
