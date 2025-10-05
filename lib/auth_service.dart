@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'config/supabase_config.dart';
 
 class AuthService extends ChangeNotifier {
   static final AuthService _instance = AuthService._internal();
@@ -46,14 +48,36 @@ class AuthService extends ChangeNotifier {
 
   Future<AuthResponse> login(String email, String password) async {
     try {
+      if (kDebugMode) {
+        print('🔐 Attempting login for: $email');
+        print('🌐 Supabase URL: ${SupabaseConfig.supabaseUrl}');
+      }
+
+      // Check network connectivity
+      final connectivityResult = await Connectivity().checkConnectivity();
+      if (kDebugMode) {
+        print('📡 Network status: $connectivityResult');
+      }
+
+      if (connectivityResult == ConnectivityResult.none) {
+        throw Exception(
+          'No internet connection. Please check your network settings.',
+        );
+      }
+
       final response = await _supabase.auth.signInWithPassword(
         email: email,
         password: password,
       );
+
+      if (kDebugMode) {
+        print('✅ Login successful');
+      }
       return response;
     } catch (e) {
       if (kDebugMode) {
-        print('Login error: $e');
+        print('❌ Login error: $e');
+        print('Error type: ${e.runtimeType}');
       }
       rethrow;
     }

@@ -77,10 +77,7 @@ class ProfilePage extends StatelessWidget {
           'Profile',
           style: TextStyle(color: Colors.white, fontSize: 18),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             onPressed: () => _handleLogout(context),
