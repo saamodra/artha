@@ -90,9 +90,6 @@ class _AddWalletPageState extends State<AddWalletPage> {
                     if (value == null || value.trim().isEmpty) {
                       return 'Please enter a wallet name';
                     }
-                    if (_walletService.isWalletNameExists(value.trim())) {
-                      return 'A wallet with this name already exists';
-                    }
                     return null;
                   },
                 ),
@@ -506,12 +503,26 @@ class _AddWalletPageState extends State<AddWalletPage> {
       });
 
       try {
+        // Check if wallet name already exists
+        final walletName = _nameController.text.trim();
+        final nameExists = await _walletService.isWalletNameExists(walletName);
+        if (nameExists) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('A wallet with this name already exists'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
         final initialValue = _selectedWalletType == WalletType.manualInput
             ? double.parse(_initialValueController.text.trim())
             : 0.0;
 
         final wallet = Wallet(
-          id: _walletService.generateWalletId(),
+          id: '', // Empty ID - Supabase will generate it automatically
           name: _nameController.text.trim(),
           type: _selectedWalletType,
           color: _selectedColor,
@@ -525,7 +536,7 @@ class _AddWalletPageState extends State<AddWalletPage> {
           assetType: _selectedAssetType,
         );
 
-        _walletService.addWallet(wallet);
+        await _walletService.addWallet(wallet);
 
         if (mounted) {
           // Show success message

@@ -38,6 +38,21 @@ class Wallet {
     };
   }
 
+  // Convert to Supabase JSON format
+  Map<String, dynamic> toSupabaseJson() {
+    return {
+      'id': id,
+      'name': name,
+      'wallet_type': type.name,
+      'color': color.toARGB32(),
+      'initial_value': initialValue,
+      'account_number': accountNumber,
+      'account_type': accountType,
+      'asset_type': assetType?.name,
+      'created_at': createdAt.toIso8601String(),
+    };
+  }
+
   // Create from Map for deserialization
   factory Wallet.fromJson(Map<String, dynamic> json) {
     return Wallet(
@@ -52,6 +67,23 @@ class Wallet {
           ? AssetType.values.firstWhere((e) => e.name == json['assetType'])
           : null,
       createdAt: DateTime.parse(json['createdAt']),
+    );
+  }
+
+  // Create from Supabase JSON format
+  factory Wallet.fromSupabaseJson(Map<String, dynamic> json) {
+    return Wallet(
+      id: json['id'],
+      name: json['name'],
+      type: WalletType.values.firstWhere((e) => e.name == json['wallet_type']),
+      color: Color(json['color']),
+      initialValue: (json['initial_value'] as num).toDouble(),
+      accountNumber: json['account_number'],
+      accountType: json['account_type'],
+      assetType: json['asset_type'] != null
+          ? AssetType.values.firstWhere((e) => e.name == json['asset_type'])
+          : null,
+      createdAt: DateTime.parse(json['created_at']),
     );
   }
 

@@ -39,6 +39,52 @@ class _WalletListPageState extends State<WalletListPage> {
         child: AnimatedBuilder(
           animation: Listenable.merge([recordService, walletService]),
           builder: (context, child) {
+            if (walletService.isLoading) {
+              return const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                ),
+              );
+            }
+
+            if (walletService.error != null) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 64,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Error loading wallets',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      walletService.error!,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => walletService.refreshWallets(),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
             return SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(

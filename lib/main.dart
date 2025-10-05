@@ -131,10 +131,33 @@ class _WalletHomePageState extends State<WalletHomePage> {
   @override
   void initState() {
     super.initState();
+    // Listen to wallet service changes
+    walletService.addListener(_onWalletServiceChanged);
     // Initialize with all wallets selected
-    selectedWallets = getWallets()
-        .map((account) => account['name'] as String)
-        .toSet();
+    _updateSelectedWallets();
+  }
+
+  @override
+  void dispose() {
+    walletService.removeListener(_onWalletServiceChanged);
+    super.dispose();
+  }
+
+  void _onWalletServiceChanged() {
+    if (mounted) {
+      setState(() {
+        _updateSelectedWallets();
+      });
+    }
+  }
+
+  void _updateSelectedWallets() {
+    final wallets = getWallets();
+    if (wallets.isNotEmpty) {
+      selectedWallets = wallets
+          .map((account) => account['name'] as String)
+          .toSet();
+    }
   }
 
   List<Map<String, dynamic>> getWallets() {
@@ -159,9 +182,7 @@ class _WalletHomePageState extends State<WalletHomePage> {
 
   void selectAllWallets() {
     setState(() {
-      selectedWallets = getWallets()
-          .map((account) => account['name'] as String)
-          .toSet();
+      _updateSelectedWallets();
       isAllSelected = true;
     });
   }
@@ -170,10 +191,9 @@ class _WalletHomePageState extends State<WalletHomePage> {
     setState(() {
       _reorderedWallets = reorderedWallets;
       // Update selected wallets to maintain the selection after reordering
-      selectedWallets = getWallets()
-          .map((account) => account['name'] as String)
-          .toSet()
-          .intersection(selectedWallets);
+      final currentSelection = selectedWallets;
+      _updateSelectedWallets();
+      selectedWallets = selectedWallets.intersection(currentSelection);
     });
   }
 

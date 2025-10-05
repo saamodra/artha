@@ -1,140 +1,89 @@
 import 'package:flutter/material.dart';
 import '../models/wallet.dart';
+import '../repositories/wallet_repository.dart';
 
 class WalletService extends ChangeNotifier {
   static final WalletService _instance = WalletService._internal();
   factory WalletService() => _instance;
   WalletService._internal() {
-    _initializeDefaultWallets();
+    _repository = WalletRepository();
+    _loadWallets();
   }
 
+  late final WalletRepository _repository;
   final List<Wallet> _wallets = [];
+  bool _isLoading = false;
+  String? _error;
 
   List<Wallet> get wallets => List.unmodifiable(_wallets);
+  bool get isLoading => _isLoading;
+  String? get error => _error;
 
-  void _initializeDefaultWallets() {
-    // Convert existing hardcoded wallets to the new Wallet model
-    final defaultWallets = [
-      Wallet(
-        id: 'cashfile',
-        name: 'Cashfile',
-        type: WalletType.manualInput,
-        color: const Color(0xFF8D6E63),
-        initialValue: 90000.00,
-        accountType: 'Cash',
-      ),
-      Wallet(
-        id: 'cash',
-        name: 'Cash',
-        type: WalletType.manualInput,
-        color: const Color(0xFF8D6E63),
-        initialValue: 349000.00,
-        accountType: 'Cash',
-      ),
-      Wallet(
-        id: 'bri',
-        name: 'BRI',
-        type: WalletType.manualInput,
-        color: Colors.blue,
-        initialValue: 262337.00,
-        accountType: 'Bank Account',
-      ),
-      Wallet(
-        id: 'ajaib_stocks',
-        name: 'Ajaib Stocks',
-        type: WalletType.investment,
-        color: Colors.blue,
-        initialValue: 41693789.00,
-        assetType: AssetType.stocks,
-      ),
-      Wallet(
-        id: 'ajaib_kripto',
-        name: 'Ajaib Kripto',
-        type: WalletType.investment,
-        color: Colors.purple,
-        initialValue: 11485644.00,
-        assetType: AssetType.crypto,
-      ),
-      Wallet(
-        id: 'bibit',
-        name: 'Bibit',
-        type: WalletType.investment,
-        color: Colors.green,
-        initialValue: 236371256.00,
-        assetType: AssetType.stocks,
-      ),
-      Wallet(
-        id: 'seabank',
-        name: 'SeaBank',
-        type: WalletType.manualInput,
-        color: Colors.orange,
-        initialValue: 4263340.00,
-        accountType: 'Bank Account',
-      ),
-      Wallet(
-        id: 'bca',
-        name: 'BCA',
-        type: WalletType.manualInput,
-        color: Colors.blue,
-        initialValue: 16237019.00,
-        accountType: 'Bank Account',
-      ),
-      Wallet(
-        id: 'bibit_saham',
-        name: 'Bibit Saham',
-        type: WalletType.investment,
-        color: Colors.grey,
-        initialValue: 16065682.00,
-        assetType: AssetType.stocks,
-      ),
-      Wallet(
-        id: 'bibit_saham_2',
-        name: 'Bibit Saham 2',
-        type: WalletType.investment,
-        color: Colors.orange,
-        initialValue: 92196754.00,
-        assetType: AssetType.stocks,
-      ),
-      Wallet(
-        id: 'shopeepay',
-        name: 'Shopeepay',
-        type: WalletType.manualInput,
-        color: Colors.orange,
-        initialValue: 372623.00,
-        accountType: 'E-Wallet',
-      ),
-      Wallet(
-        id: 'permata',
-        name: 'Permata',
-        type: WalletType.manualInput,
-        color: Colors.green,
-        initialValue: 6570.00,
-        accountType: 'Bank Account',
-      ),
-    ];
-
-    _wallets.addAll(defaultWallets);
-  }
-
-  // Add a new wallet
-  void addWallet(Wallet wallet) {
-    _wallets.add(wallet);
+  /// Load wallets from Supabase
+  Future<void> _loadWallets() async {
+    _isLoading = true;
+    _error = null;
     notifyListeners();
-  }
 
-  // Update an existing wallet
-  void updateWallet(Wallet updatedWallet) {
-    final index = _wallets.indexWhere((w) => w.id == updatedWallet.id);
-    if (index != -1) {
-      _wallets[index] = updatedWallet;
+    try {
+      final wallets = await _repository.getWallets();
+      _wallets.clear();
+      _wallets.addAll(wallets);
+      _error = null;
+    } catch (e) {
+      _error = e.toString();
+      // Keep existing wallets if loading fails
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }
 
+  /// Refresh wallets from Supabase
+  Future<void> refreshWallets() async {
+    await _loadWallets();
+  }
+
+  // Add a new wallet
+  Future<void> addWallet(Wallet wallet) async {
+    try {
+      final createdWallet = await _repository.createWallet(wallet);
+      _wallets.add(createdWallet);
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  // Update an existing wallet
+  Future<void> updateWallet(Wallet updatedWallet) async {
+    try {
+      final updated = await _repository.updateWallet(updatedWallet);
+      final index = _wallets.indexWhere((w) => w.id == updatedWallet.id);
+      if (index != -1) {
+        _wallets[index] = updated;
+        notifyListeners();
+      }
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    }
+  }
+
   // Delete a wallet
-  void deleteWallet(String walletId) {
-    _wallets.removeWhere((w) => w.id == walletId);
-    notifyListeners();
+  Future<void> deleteWallet(String walletId) async {
+    try {
+      await _repository.deleteWallet(walletId);
+      _wallets.removeWhere((w) => w.id == walletId);
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    }
   }
 
   // Get a wallet by ID
@@ -161,12 +110,17 @@ class WalletService extends ChangeNotifier {
   }
 
   // Check if wallet name already exists
-  bool isWalletNameExists(String name, {String? excludeId}) {
-    return _wallets.any(
-      (w) =>
-          w.name.toLowerCase() == name.toLowerCase() &&
-          (excludeId == null || w.id != excludeId),
-    );
+  Future<bool> isWalletNameExists(String name, {String? excludeId}) async {
+    try {
+      return await _repository.isWalletNameExists(name, excludeId: excludeId);
+    } catch (e) {
+      // Fallback to local check if repository fails
+      return _wallets.any(
+        (w) =>
+            w.name.toLowerCase() == name.toLowerCase() &&
+            (excludeId == null || w.id != excludeId),
+      );
+    }
   }
 
   // Convert wallets to legacy format for backward compatibility
@@ -174,9 +128,9 @@ class WalletService extends ChangeNotifier {
     return _wallets.map((wallet) => wallet.toLegacyFormat()).toList();
   }
 
-  // Generate a unique ID for new wallets
+  // Generate a unique ID for new wallets (UUID will be generated by Supabase)
   String generateWalletId() {
-    return 'wallet_${DateTime.now().millisecondsSinceEpoch}';
+    return 'temp_${DateTime.now().millisecondsSinceEpoch}';
   }
 
   // Get total balance across all wallets
