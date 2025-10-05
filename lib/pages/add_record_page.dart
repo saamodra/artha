@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/wallet_record.dart';
+import '../models/label.dart';
 import '../services/record_service.dart';
 import '../services/category_service.dart';
+import '../services/wallet_service.dart';
+import '../widgets/label_selector.dart';
 
 class AddRecordPage extends StatefulWidget {
-  final List<Map<String, dynamic>> wallets;
   final String? preSelectedWallet;
 
   const AddRecordPage({
     super.key,
-    required this.wallets,
     this.preSelectedWallet,
   });
 
@@ -22,14 +23,15 @@ class _AddRecordPageState extends State<AddRecordPage> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
   final _noteController = TextEditingController();
-  final _labelController = TextEditingController();
   final _categoryService = CategoryService();
+  final _walletService = WalletService();
 
   RecordType _selectedType = RecordType.expense;
   String? _selectedCategory;
   String? _selectedAccount;
   String? _selectedTransferToAccount;
   DateTime _selectedDateTime = DateTime.now();
+  List<Label> _selectedLabels = [];
 
   @override
   void initState() {
@@ -38,31 +40,43 @@ class _AddRecordPageState extends State<AddRecordPage> {
     _categoryService.initialize();
     _categoryService.addListener(_onCategoryServiceChanged);
 
-    // Set default account to pre-selected wallet or first wallet if available
-    if (widget.preSelectedWallet != null) {
-      // Verify that the pre-selected wallet exists in the wallet list
-      final walletExists = widget.wallets.any(
-        (wallet) => wallet['name'] as String == widget.preSelectedWallet,
-      );
-      if (walletExists) {
-        _selectedAccount = widget.preSelectedWallet;
-      } else {
-        // Debug: Log when pre-selected wallet is not found
-        debugPrint(
-          'AddRecordPage: Pre-selected wallet "${widget.preSelectedWallet}" not found in wallet list',
-        );
-        debugPrint(
-          'Available wallets: ${widget.wallets.map((w) => w['name']).join(', ')}',
-        );
-        if (widget.wallets.isNotEmpty) {
-          _selectedAccount = widget.wallets.first['name'] as String;
-        }
-      }
-    } else if (widget.wallets.isNotEmpty) {
-      _selectedAccount = widget.wallets.first['name'] as String;
-    }
+    // Load wallets from database and set default account
+    _loadWalletsAndSetDefault();
     // Set default category based on type
     _updateCategoryForType();
+  }
+
+  Future<void> _loadWalletsAndSetDefault() async {
+    // Wait for wallets to load
+    await _walletService.refreshWallets();
+
+    if (mounted) {
+      setState(() {
+        // Set default account to pre-selected wallet or first wallet if available
+        if (widget.preSelectedWallet != null) {
+          // Verify that the pre-selected wallet exists in the wallet list
+          final walletExists = _walletService.wallets.any(
+            (wallet) => wallet.name == widget.preSelectedWallet,
+          );
+          if (walletExists) {
+            _selectedAccount = widget.preSelectedWallet;
+          } else {
+            // Debug: Log when pre-selected wallet is not found
+            debugPrint(
+              'AddRecordPage: Pre-selected wallet "${widget.preSelectedWallet}" not found in wallet list',
+            );
+            debugPrint(
+              'Available wallets: ${_walletService.wallets.map((w) => w.name).join(', ')}',
+            );
+            if (_walletService.wallets.isNotEmpty) {
+              _selectedAccount = _walletService.wallets.first.name;
+            }
+          }
+        } else if (_walletService.wallets.isNotEmpty) {
+          _selectedAccount = _walletService.wallets.first.name;
+        }
+      });
+    }
   }
 
   void _onCategoryServiceChanged() {
@@ -79,7 +93,6 @@ class _AddRecordPageState extends State<AddRecordPage> {
     _categoryService.removeListener(_onCategoryServiceChanged);
     _amountController.dispose();
     _noteController.dispose();
-    _labelController.dispose();
     super.dispose();
   }
 
@@ -158,7 +171,7 @@ class _AddRecordPageState extends State<AddRecordPage> {
     }
   }
 
-  void _saveRecord() {
+  Future<void> _saveRecord() async {
     if (_formKey.currentState!.validate()) {
       if (_selectedType == RecordType.transfer &&
           _selectedTransferToAccount == null) {
@@ -182,29 +195,44 @@ class _AddRecordPageState extends State<AddRecordPage> {
         return;
       }
 
-      final record = WalletRecord(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        type: _selectedType,
-        category: _selectedCategory!,
-        account: _selectedAccount!,
-        transferToAccount: _selectedTransferToAccount,
-        amount: double.parse(_amountController.text),
-        dateTime: _selectedDateTime,
-        note: _noteController.text.isEmpty ? null : _noteController.text,
-        label: _labelController.text.isEmpty ? null : _labelController.text,
-      );
+      try {
+        final record = WalletRecord(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          type: _selectedType,
+          category: _selectedCategory!,
+          account: _selectedAccount!,
+          transferToAccount: _selectedTransferToAccount,
+          amount: double.parse(_amountController.text),
+          dateTime: _selectedDateTime,
+          note: _noteController.text.isEmpty ? null : _noteController.text,
+          labels: _selectedLabels,
+        );
 
-      RecordService().addRecord(record);
+        // Create record with labels using service (which handles both Supabase and local updates)
+        final labelIds = _selectedLabels.map((label) => label.id).toList();
+        await RecordService().addRecord(record, labelIds: labelIds);
 
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '${_selectedType.name.toUpperCase()} record added successfully',
-          ),
-          backgroundColor: Colors.green,
-        ),
-      );
+        if (mounted) {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '${_selectedType.name.toUpperCase()} record added successfully',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to save record: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -415,32 +443,38 @@ class _AddRecordPageState extends State<AddRecordPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: _selectedAccount,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                        ),
-                        dropdownColor: const Color(0xFF1A1A1A),
-                        style: const TextStyle(color: Colors.white),
-                        items: widget.wallets
-                            .map(
-                              (wallet) => DropdownMenuItem(
-                                value: wallet['name'] as String,
-                                child: Text(wallet['name'] as String),
+                      AnimatedBuilder(
+                        animation: _walletService,
+                        builder: (context, child) {
+                          return DropdownButtonFormField<String>(
+                            value: _selectedAccount,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
                               ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedAccount = value;
-                          });
+                            ),
+                            dropdownColor: const Color(0xFF1A1A1A),
+                            style: const TextStyle(color: Colors.white),
+                            items: _walletService.wallets
+                                .map(
+                                  (wallet) => DropdownMenuItem(
+                                    value: wallet.name,
+                                    child: Text(wallet.name),
+                                  ),
+                                )
+                                .toSet() // Remove duplicates
+                                .toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedAccount = value;
+                              });
+                            },
+                            validator: (value) =>
+                                value == null ? 'Please select an account' : null,
+                          );
                         },
-                        validator: (value) =>
-                            value == null ? 'Please select an account' : null,
                       ),
 
                       // Transfer To Account Section (only for transfers)
@@ -455,32 +489,38 @@ class _AddRecordPageState extends State<AddRecordPage> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedTransferToAccount,
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                          ),
-                          dropdownColor: const Color(0xFF1A1A1A),
-                          style: const TextStyle(color: Colors.white),
-                          items: widget.wallets
-                              .where(
-                                (wallet) => wallet['name'] != _selectedAccount,
-                              )
-                              .map(
-                                (wallet) => DropdownMenuItem(
-                                  value: wallet['name'] as String,
-                                  child: Text(wallet['name'] as String),
+                        AnimatedBuilder(
+                          animation: _walletService,
+                          builder: (context, child) {
+                            return DropdownButtonFormField<String>(
+                              value: _selectedTransferToAccount,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
                                 ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedTransferToAccount = value;
-                            });
+                              ),
+                              dropdownColor: const Color(0xFF1A1A1A),
+                              style: const TextStyle(color: Colors.white),
+                              items: _walletService.wallets
+                                  .where(
+                                    (wallet) => wallet.name != _selectedAccount,
+                                  )
+                                  .map(
+                                    (wallet) => DropdownMenuItem(
+                                      value: wallet.name,
+                                      child: Text(wallet.name),
+                                    ),
+                                  )
+                                  .toSet() // Remove duplicates
+                                  .toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedTransferToAccount = value;
+                                });
+                              },
+                            );
                           },
                         ),
                       ],
@@ -605,9 +645,9 @@ class _AddRecordPageState extends State<AddRecordPage> {
 
                       const SizedBox(height: 20),
 
-                      // Label Section
+                      // Labels Section
                       const Text(
-                        'Label (Optional)',
+                        'Labels (Optional)',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -615,18 +655,13 @@ class _AddRecordPageState extends State<AddRecordPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _labelController,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'Add a label...',
-                          hintStyle: TextStyle(color: Colors.white54),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                        ),
-                        style: const TextStyle(color: Colors.white),
+                      LabelSelector(
+                        selectedLabels: _selectedLabels,
+                        onLabelsChanged: (labels) {
+                          setState(() {
+                            _selectedLabels = labels;
+                          });
+                        },
                       ),
                     ],
                   ),

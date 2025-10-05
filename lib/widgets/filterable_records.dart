@@ -3,7 +3,7 @@ import '../services/record_service.dart';
 import '../models/wallet_record.dart';
 import 'record_item.dart';
 
-class FilterableRecordsPage extends StatefulWidget {
+class FilterableRecords extends StatefulWidget {
   final String title;
   final String?
   specificWallet; // If provided, only shows records for this wallet
@@ -11,7 +11,7 @@ class FilterableRecordsPage extends StatefulWidget {
   final List<Map<String, dynamic>> wallets;
   final bool showBackButton; // Controls whether to show back button
 
-  const FilterableRecordsPage({
+  const FilterableRecords({
     super.key,
     required this.title,
     required this.recordService,
@@ -21,10 +21,10 @@ class FilterableRecordsPage extends StatefulWidget {
   });
 
   @override
-  State<FilterableRecordsPage> createState() => _FilterableRecordsPageState();
+  State<FilterableRecords> createState() => _FilterableRecordsState();
 }
 
-class _FilterableRecordsPageState extends State<FilterableRecordsPage> {
+class _FilterableRecordsState extends State<FilterableRecords> {
   // Filter states
   String? selectedWallet; // null means all wallets
   DateTimeRange? selectedDateRange;
@@ -34,10 +34,19 @@ class _FilterableRecordsPageState extends State<FilterableRecordsPage> {
   @override
   void initState() {
     super.initState();
+    print('FilterableRecords initState');
     // If we have a specific wallet, set it as the default filter
     if (widget.specificWallet != null) {
       selectedWallet = widget.specificWallet;
     }
+    // Load records from Supabase after the build is complete
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadRecords();
+    });
+  }
+
+  Future<void> _loadRecords() async {
+    await widget.recordService.loadRecords();
   }
 
   List<WalletRecord> get filteredRecords {
@@ -302,6 +311,56 @@ class _FilterableRecordsPageState extends State<FilterableRecordsPage> {
   }
 
   Widget _buildRecordsList() {
+    // Show loading indicator
+    if (widget.recordService.isLoading) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(color: Colors.blue),
+            SizedBox(height: 16),
+            Text(
+              'Loading records...',
+              style: TextStyle(color: Colors.white70, fontSize: 16),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Show error message
+    if (widget.recordService.error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            const Text(
+              'Failed to load records',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              widget.recordService.error!,
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadRecords,
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+              child: const Text('Retry', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+    }
+
     final records = filteredRecords;
 
     if (records.isEmpty) {

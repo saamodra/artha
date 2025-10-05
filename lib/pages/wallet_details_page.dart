@@ -4,7 +4,7 @@ import '../models/wallet_record.dart';
 import '../services/record_service.dart';
 import '../services/wallet_service.dart';
 import '../widgets/record_item.dart';
-import '../widgets/filterable_records_page.dart';
+import '../widgets/filterable_records.dart';
 import 'add_record_page.dart';
 
 class WalletDetailsPage extends StatefulWidget {
@@ -568,7 +568,7 @@ class _WalletDetailsPageState extends State<WalletDetailsPage> {
     final walletName = widget.wallet['name'] as String;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => FilterableRecordsPage(
+        builder: (context) => FilterableRecords(
           title: '$walletName Records',
           specificWallet: walletName,
           recordService: recordService,
@@ -582,10 +582,7 @@ class _WalletDetailsPageState extends State<WalletDetailsPage> {
     final walletName = widget.wallet['name'] as String;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => AddRecordPage(
-          wallets: walletService.getWalletsInLegacyFormat(),
-          preSelectedWallet: walletName,
-        ),
+        builder: (context) => AddRecordPage(preSelectedWallet: walletName),
       ),
     );
   }

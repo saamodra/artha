@@ -353,25 +353,31 @@ class _RecordsFilterPageState extends State<RecordsFilterPage> {
                         ),
                       ),
                     ],
-                    if (record.label != null && record.label!.isNotEmpty) ...[
+                    if (record.labels.isNotEmpty) ...[
                       const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          record.label!,
-                          style: const TextStyle(
-                            color: Colors.blue,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 2,
+                        children: record.labels.map((label) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              label.name,
+                              style: const TextStyle(
+                                color: Colors.blue,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                     ],
                   ],

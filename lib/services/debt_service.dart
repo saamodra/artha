@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/debt.dart';
 import '../models/wallet_record.dart';
+import '../models/label.dart';
 import 'record_service.dart';
 
 class DebtService extends ChangeNotifier {
@@ -154,7 +155,13 @@ class DebtService extends ChangeNotifier {
           dateTime: debtRecord.dateTime,
           note:
               'Debt repayment from ${debt.name}${debtRecord.note != null ? ' - ${debtRecord.note}' : ''}',
-          label: 'Debt Repayment',
+          labels: [
+            Label(
+              id: 'debt_repayment_label',
+              name: 'Debt Repayment',
+              createdAt: DateTime.now(),
+            ),
+          ],
         );
       } else {
         // I'm lending more money - expense from my account
@@ -167,7 +174,13 @@ class DebtService extends ChangeNotifier {
           dateTime: debtRecord.dateTime,
           note:
               'Additional loan to ${debt.name}${debtRecord.note != null ? ' - ${debtRecord.note}' : ''}',
-          label: 'Debt Increase',
+          labels: [
+            Label(
+              id: 'debt_increase_label',
+              name: 'Debt Increase',
+              createdAt: DateTime.now(),
+            ),
+          ],
         );
       }
     } else {
@@ -183,7 +196,13 @@ class DebtService extends ChangeNotifier {
           dateTime: debtRecord.dateTime,
           note:
               'Debt repayment to ${debt.name}${debtRecord.note != null ? ' - ${debtRecord.note}' : ''}',
-          label: 'Debt Repayment',
+          labels: [
+            Label(
+              id: 'debt_repayment_label',
+              name: 'Debt Repayment',
+              createdAt: DateTime.now(),
+            ),
+          ],
         );
       } else {
         // They're lending me more money - income to my account
@@ -196,7 +215,13 @@ class DebtService extends ChangeNotifier {
           dateTime: debtRecord.dateTime,
           note:
               'Additional loan from ${debt.name}${debtRecord.note != null ? ' - ${debtRecord.note}' : ''}',
-          label: 'Debt Increase',
+          labels: [
+            Label(
+              id: 'debt_increase_label',
+              name: 'Debt Increase',
+              createdAt: DateTime.now(),
+            ),
+          ],
         );
       }
     }

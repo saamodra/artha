@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/wallet_record.dart';
+import '../models/label.dart';
 import '../services/record_service.dart';
 import '../services/category_service.dart';
+import '../services/wallet_service.dart';
+import '../widgets/label_selector.dart';
 
 class EditRecordPage extends StatefulWidget {
   final WalletRecord record;
-  final List<Map<String, dynamic>> wallets;
 
-  const EditRecordPage({
-    super.key,
-    required this.record,
-    required this.wallets,
-  });
+  const EditRecordPage({super.key, required this.record});
 
   @override
   State<EditRecordPage> createState() => _EditRecordPageState();
@@ -22,14 +20,15 @@ class _EditRecordPageState extends State<EditRecordPage> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
   final _noteController = TextEditingController();
-  final _labelController = TextEditingController();
   final _categoryService = CategoryService();
+  final _walletService = WalletService();
 
   late RecordType _selectedType;
   String? _selectedCategory;
   String? _selectedAccount;
   String? _selectedTransferToAccount;
   late DateTime _selectedDateTime;
+  List<Label> _selectedLabels = [];
 
   @override
   void initState() {
@@ -46,7 +45,7 @@ class _EditRecordPageState extends State<EditRecordPage> {
     _selectedDateTime = widget.record.dateTime;
     _amountController.text = widget.record.amount.toString();
     _noteController.text = widget.record.note ?? '';
-    _labelController.text = widget.record.label ?? '';
+    _selectedLabels = List.from(widget.record.labels);
   }
 
   void _onCategoryServiceChanged() {
@@ -63,7 +62,6 @@ class _EditRecordPageState extends State<EditRecordPage> {
     _categoryService.removeListener(_onCategoryServiceChanged);
     _amountController.dispose();
     _noteController.dispose();
-    _labelController.dispose();
     super.dispose();
   }
 
@@ -142,7 +140,7 @@ class _EditRecordPageState extends State<EditRecordPage> {
     }
   }
 
-  void _updateRecord() {
+  Future<void> _updateRecord() async {
     if (_formKey.currentState!.validate()) {
       if (_selectedType == RecordType.transfer &&
           _selectedTransferToAccount == null) {
@@ -166,29 +164,44 @@ class _EditRecordPageState extends State<EditRecordPage> {
         return;
       }
 
-      final updatedRecord = WalletRecord(
-        id: widget.record.id, // Keep the same ID
-        type: _selectedType,
-        category: _selectedCategory!,
-        account: _selectedAccount!,
-        transferToAccount: _selectedTransferToAccount,
-        amount: double.parse(_amountController.text),
-        dateTime: _selectedDateTime,
-        note: _noteController.text.isEmpty ? null : _noteController.text,
-        label: _labelController.text.isEmpty ? null : _labelController.text,
-      );
+      try {
+        final updatedRecord = WalletRecord(
+          id: widget.record.id, // Keep the same ID
+          type: _selectedType,
+          category: _selectedCategory!,
+          account: _selectedAccount!,
+          transferToAccount: _selectedTransferToAccount,
+          amount: double.parse(_amountController.text),
+          dateTime: _selectedDateTime,
+          note: _noteController.text.isEmpty ? null : _noteController.text,
+          labels: _selectedLabels,
+        );
 
-      RecordService().updateRecord(updatedRecord);
+        // Update record with labels using service (which handles both Supabase and local updates)
+        final labelIds = _selectedLabels.map((label) => label.id).toList();
+        await RecordService().updateRecord(updatedRecord, labelIds: labelIds);
 
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '${_selectedType.name.toUpperCase()} record updated successfully',
-          ),
-          backgroundColor: Colors.green,
-        ),
-      );
+        if (mounted) {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '${_selectedType.name.toUpperCase()} record updated successfully',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to update record: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -212,16 +225,18 @@ class _EditRecordPageState extends State<EditRecordPage> {
               child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
-                RecordService().deleteRecord(widget.record.id);
-                Navigator.of(context).pop(); // Close dialog
-                Navigator.of(context).pop(); // Close edit page
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Record deleted successfully'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+              onPressed: () async {
+                await RecordService().deleteRecord(widget.record.id);
+                if (mounted) {
+                  Navigator.of(context).pop(); // Close dialog
+                  Navigator.of(context).pop(); // Close edit page
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Record deleted successfully'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               },
               child: const Text('Delete', style: TextStyle(color: Colors.red)),
             ),
@@ -386,32 +401,39 @@ class _EditRecordPageState extends State<EditRecordPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: _selectedAccount,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                        ),
-                        dropdownColor: const Color(0xFF1A1A1A),
-                        style: const TextStyle(color: Colors.white),
-                        items: widget.wallets
-                            .map(
-                              (wallet) => DropdownMenuItem(
-                                value: wallet['name'] as String,
-                                child: Text(wallet['name'] as String),
+                      AnimatedBuilder(
+                        animation: _walletService,
+                        builder: (context, child) {
+                          return DropdownButtonFormField<String>(
+                            value: _selectedAccount,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
                               ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedAccount = value;
-                          });
+                            ),
+                            dropdownColor: const Color(0xFF1A1A1A),
+                            style: const TextStyle(color: Colors.white),
+                            items: _walletService.wallets
+                                .map(
+                                  (wallet) => DropdownMenuItem(
+                                    value: wallet.name,
+                                    child: Text(wallet.name),
+                                  ),
+                                )
+                                .toSet() // Remove duplicates
+                                .toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedAccount = value;
+                              });
+                            },
+                            validator: (value) => value == null
+                                ? 'Please select an account'
+                                : null,
+                          );
                         },
-                        validator: (value) =>
-                            value == null ? 'Please select an account' : null,
                       ),
 
                       // Transfer To Account Section (only for transfers)
@@ -426,32 +448,38 @@ class _EditRecordPageState extends State<EditRecordPage> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedTransferToAccount,
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                          ),
-                          dropdownColor: const Color(0xFF1A1A1A),
-                          style: const TextStyle(color: Colors.white),
-                          items: widget.wallets
-                              .where(
-                                (wallet) => wallet['name'] != _selectedAccount,
-                              )
-                              .map(
-                                (wallet) => DropdownMenuItem(
-                                  value: wallet['name'] as String,
-                                  child: Text(wallet['name'] as String),
+                        AnimatedBuilder(
+                          animation: _walletService,
+                          builder: (context, child) {
+                            return DropdownButtonFormField<String>(
+                              value: _selectedTransferToAccount,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
                                 ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedTransferToAccount = value;
-                            });
+                              ),
+                              dropdownColor: const Color(0xFF1A1A1A),
+                              style: const TextStyle(color: Colors.white),
+                              items: _walletService.wallets
+                                  .where(
+                                    (wallet) => wallet.name != _selectedAccount,
+                                  )
+                                  .map(
+                                    (wallet) => DropdownMenuItem(
+                                      value: wallet.name,
+                                      child: Text(wallet.name),
+                                    ),
+                                  )
+                                  .toSet() // Remove duplicates
+                                  .toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedTransferToAccount = value;
+                                });
+                              },
+                            );
                           },
                         ),
                       ],
@@ -578,7 +606,7 @@ class _EditRecordPageState extends State<EditRecordPage> {
 
                       // Label Section
                       const Text(
-                        'Label (Optional)',
+                        'Labels (Optional)',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -586,18 +614,13 @@ class _EditRecordPageState extends State<EditRecordPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _labelController,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'Add a label...',
-                          hintStyle: TextStyle(color: Colors.white54),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                        ),
-                        style: const TextStyle(color: Colors.white),
+                      LabelSelector(
+                        selectedLabels: _selectedLabels,
+                        onLabelsChanged: (labels) {
+                          setState(() {
+                            _selectedLabels = labels;
+                          });
+                        },
                       ),
                     ],
                   ),

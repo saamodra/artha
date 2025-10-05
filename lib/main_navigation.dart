@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'main.dart';
 import 'services/wallet_service.dart';
 import 'pages/wallet_list_page.dart';
-import 'pages/records_filter_page.dart';
+import 'pages/records_page.dart';
 import 'pages/add_record_page.dart';
 import 'pages/debts_page.dart';
 import 'profile_page.dart';
@@ -43,12 +43,9 @@ class _MainNavigationState extends State<MainNavigation> {
   }
 
   void _showAddRecordPage() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) =>
-            AddRecordPage(wallets: walletService.getWalletsInLegacyFormat()),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => AddRecordPage()));
   }
 
   @override
@@ -64,7 +61,7 @@ class _MainNavigationState extends State<MainNavigation> {
         children: [
           const WalletHomePage(), // Home - index 0
           const WalletListPage(), // Wallet - index 1
-          const RecordsFilterPage(), // Records - index 2
+          const RecordsPage(), // Records - index 2
           const DebtsPage(), // Debts - index 3
           const ProfilePage(), // Profile - index 4
         ],

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/wallet_record.dart';
+import '../repositories/wallet_record_repository.dart';
 import 'wallet_service.dart';
 
 class RecordService extends ChangeNotifier {
@@ -11,29 +12,98 @@ class RecordService extends ChangeNotifier {
 
   final List<WalletRecord> _records = [];
   late final WalletService _walletService;
+  final WalletRecordRepository _repository = WalletRecordRepository();
+  bool _isLoading = false;
+  String? _error;
 
   List<WalletRecord> get records => List.unmodifiable(_records);
+  bool get isLoading => _isLoading;
+  String? get error => _error;
 
-  void addRecord(WalletRecord record) {
-    _records.add(record);
-    _records.sort(
-      (a, b) => b.dateTime.compareTo(a.dateTime),
-    ); // Sort by date descending
+  /// Load records from Supabase
+  Future<void> loadRecords() async {
+    _isLoading = true;
+    _error = null;
     notifyListeners();
-  }
 
-  void updateRecord(WalletRecord updatedRecord) {
-    final index = _records.indexWhere((r) => r.id == updatedRecord.id);
-    if (index != -1) {
-      _records[index] = updatedRecord;
+    try {
+      final records = await _repository.getWalletRecords();
+      print('Records: $records');
+      _records.clear();
+      _records.addAll(records);
       _records.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }
 
-  void deleteRecord(String recordId) {
-    _records.removeWhere((r) => r.id == recordId);
-    notifyListeners();
+  /// Refresh records from Supabase
+  Future<void> refreshRecords() async {
+    await loadRecords();
+  }
+
+  Future<void> addRecord(WalletRecord record, {List<String>? labelIds}) async {
+    try {
+      // Add to Supabase first
+      final createdRecord = await _repository.createWalletRecord(
+        record,
+        labelIds: labelIds,
+      );
+
+      // Add to local list
+      _records.add(createdRecord);
+      _records.sort(
+        (a, b) => b.dateTime.compareTo(a.dateTime),
+      ); // Sort by date descending
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<void> updateRecord(
+    WalletRecord updatedRecord, {
+    List<String>? labelIds,
+  }) async {
+    try {
+      // Update in Supabase first
+      final updatedRecordFromDb = await _repository.updateWalletRecord(
+        updatedRecord,
+        labelIds: labelIds,
+      );
+
+      // Update local list
+      final index = _records.indexWhere((r) => r.id == updatedRecord.id);
+      if (index != -1) {
+        _records[index] = updatedRecordFromDb;
+        _records.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+        notifyListeners();
+      }
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<void> deleteRecord(String recordId) async {
+    try {
+      // Delete from Supabase first
+      await _repository.deleteWalletRecord(recordId);
+
+      // Remove from local list
+      _records.removeWhere((r) => r.id == recordId);
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    }
   }
 
   List<WalletRecord> getRecordsForAccount(String accountName) {

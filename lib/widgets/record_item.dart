@@ -126,26 +126,37 @@ class RecordItem extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (record.label != null &&
-                            record.label!.isNotEmpty) ...[
+                        if (record.labels.isNotEmpty) ...[
                           const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 1,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                            child: Text(
-                              record.label!,
-                              style: const TextStyle(
-                                color: Colors.blue,
-                                fontSize: 9,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
+                          Wrap(
+                            spacing: 4,
+                            runSpacing: 2,
+                            children: record.labels.map((label) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 1,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: label.color != null
+                                      ? Color(
+                                          label.color!,
+                                        ).withValues(alpha: 0.2)
+                                      : Colors.blue.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                                child: Text(
+                                  label.name,
+                                  style: TextStyle(
+                                    color: label.color != null
+                                        ? Color(label.color!)
+                                        : Colors.blue,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
                           ),
                         ],
                       ],
@@ -207,8 +218,7 @@ class RecordItem extends StatelessWidget {
     Navigator.of(context)
         .push(
           MaterialPageRoute(
-            builder: (context) =>
-                EditRecordPage(record: record, wallets: wallets),
+            builder: (context) => EditRecordPage(record: record),
           ),
         )
         .then((_) {

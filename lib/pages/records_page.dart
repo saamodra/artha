@@ -1,20 +1,34 @@
 import 'package:flutter/material.dart';
 import '../services/record_service.dart';
-import '../widgets/filterable_records_page.dart';
+import '../widgets/filterable_records.dart';
 
-class RecordsFilterPage extends StatefulWidget {
-  const RecordsFilterPage({super.key});
+class RecordsPage extends StatefulWidget {
+  const RecordsPage({super.key});
 
   @override
-  State<RecordsFilterPage> createState() => _RecordsFilterPageState();
+  State<RecordsPage> createState() => _RecordsPageState();
 }
 
-class _RecordsFilterPageState extends State<RecordsFilterPage> {
+class _RecordsPageState extends State<RecordsPage> {
   final RecordService recordService = RecordService();
 
   @override
+  void initState() {
+    super.initState();
+    print('RecordsPage initState');
+    // Load records from Supabase after the build is complete
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadRecords();
+    });
+  }
+
+  Future<void> _loadRecords() async {
+    await recordService.loadRecords();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return FilterableRecordsPage(
+    return FilterableRecords(
       title: 'Records',
       recordService: recordService,
       wallets: _getAllAccounts(),
