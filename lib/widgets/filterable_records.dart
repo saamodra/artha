@@ -34,7 +34,6 @@ class _FilterableRecordsState extends State<FilterableRecords> {
   @override
   void initState() {
     super.initState();
-    print('FilterableRecords initState');
     // If we have a specific wallet, set it as the default filter
     if (widget.specificWallet != null) {
       selectedWallet = widget.specificWallet;

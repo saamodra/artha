@@ -113,53 +113,14 @@ class RecordItem extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            record.category,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (record.labels.isNotEmpty) ...[
-                          const SizedBox(width: 8),
-                          Wrap(
-                            spacing: 4,
-                            runSpacing: 2,
-                            children: record.labels.map((label) {
-                              return Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 1,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: label.color != null
-                                      ? Color(
-                                          label.color!,
-                                        ).withValues(alpha: 0.2)
-                                      : Colors.blue.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                                child: Text(
-                                  label.name,
-                                  style: TextStyle(
-                                    color: label.color != null
-                                        ? Color(label.color!)
-                                        : Colors.blue,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ],
-                      ],
+                    Text(
+                      record.category,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 1),
                     Text(
@@ -182,6 +143,41 @@ class RecordItem extends StatelessWidget {
                           fontStyle: FontStyle.italic,
                         ),
                         overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    if (record.labels.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 2,
+                        children: record.labels.map((label) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: label.color != null
+                                  ? Color(label.color!).withValues(alpha: 0.3)
+                                  : Colors.blue.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: label.color != null
+                                    ? Color(label.color!).withValues(alpha: 0.6)
+                                    : Colors.blue.withValues(alpha: 0.6),
+                                width: 0.5,
+                              ),
+                            ),
+                            child: Text(
+                              label.name,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                     ],
                   ],
